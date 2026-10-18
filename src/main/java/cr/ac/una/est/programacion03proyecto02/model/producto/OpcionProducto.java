@@ -1,6 +1,6 @@
-package cr.ac.una.est.programacion03proyecto02.model.pedidos;
-import cr.ac.una.est.programacion03proyecto02.model.pedidos.enum_class.TipoOpcion;
-
+package cr.ac.una.est.programacion03proyecto02.model.producto;
+import cr.ac.una.est.programacion03proyecto02.model.inventario.recetaItem;
+import cr.ac.una.est.programacion03proyecto02.model.producto.enum_class.TipoOpcion;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +18,7 @@ public class OpcionProducto {
     private boolean activa;
 
     //elementos asociados a la receta de esta opción
-    private List<RecetaItem> receta;
+    private List<recetaItem> receta;
 
     public OpcionProducto() {
         this.receta = new ArrayList<>();
@@ -74,12 +74,12 @@ public class OpcionProducto {
         this.activa = activa;
     }
 
-    public List<RecetaItem> getReceta() {
+    public List<recetaItem> getReceta() {
         return receta;
     }
 
     //si se recibe null, asigna una lista vacía para evitar errores al usarla
-    public void setReceta(List<RecetaItem> receta) {
+    public void setReceta(List<recetaItem> receta) {
         this.receta = receta != null ? receta : new ArrayList<>();
     }
 }
