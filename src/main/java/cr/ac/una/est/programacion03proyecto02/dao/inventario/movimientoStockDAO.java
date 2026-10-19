@@ -1,5 +1,5 @@
 package cr.ac.una.est.programacion03proyecto02.dao.inventario;
-
+/*
 import cr.ac.una.est.programacion03proyecto02.model.inventario.movimientoStock;
 
 import java.sql.Connection;
@@ -25,3 +25,4 @@ public class movimientoStockDAO {
         return null;
     }
 }
+*/
