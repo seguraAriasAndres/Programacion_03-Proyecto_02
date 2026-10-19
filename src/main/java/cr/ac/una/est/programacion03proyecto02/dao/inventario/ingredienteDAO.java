@@ -1,5 +1,5 @@
 package cr.ac.una.est.programacion03proyecto02.dao.inventario;
-
+/*
 import cr.ac.una.est.programacion03proyecto02.model.inventario.ingrediente;
 
 import java.sql.Connection;
@@ -43,3 +43,4 @@ public class ingredienteDAO {
         }
     }
 }
+*/

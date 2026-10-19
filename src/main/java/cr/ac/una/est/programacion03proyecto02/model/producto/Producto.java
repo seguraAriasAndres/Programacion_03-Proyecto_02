@@ -3,7 +3,7 @@ package cr.ac.una.est.programacion03proyecto02.model.producto;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-
+import cr.ac.una.est.programacion03proyecto02.model.inventario.recetaItem;
 //representa un producto del catálogo
 public class Producto {
     private int id;
@@ -13,7 +13,7 @@ public class Producto {
     private BigDecimal precioBase;
     private Categoria categoria;
     private boolean activo;
-    private List<RecetaItem> receta;
+    private List<recetaItem> receta;
     private List<OpcionProducto> opciones;
 
     public Producto() {
@@ -74,12 +74,12 @@ public class Producto {
         this.activo = activo;
     }
 
-    public List<RecetaItem> getReceta() {
+    public List<recetaItem> getReceta() {
         return receta;
     }
 
     //reemplaza la receta base, si recibe null, deja una lista vacía
-    public void setReceta(List<RecetaItem> receta) {
+    public void setReceta(List<recetaItem> receta) {
         this.receta = receta != null ? receta : new ArrayList<>();
     }
 
