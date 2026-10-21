@@ -5,6 +5,7 @@ import cr.ac.una.est.programacion03proyecto02.model.producto.OpcionProducto;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 
 public class lineaPedido {
     private final long id;
@@ -29,6 +30,31 @@ public class lineaPedido {
         this.extras = List.copyOf(producto.getOpciones());
         this.producto = producto;
 
+    }
+
+    public static lineaPedido reconstruirHistorica(long id, String nombreProducto,
+            String nombreCategoria, String descripcionExtras,
+            BigDecimal precioUnitario, int cantidad) {
+        return new lineaPedido(id, nombreProducto, nombreCategoria,
+                descripcionExtras, precioUnitario, cantidad);
+    }
+
+    private lineaPedido(long id, String nombreProducto, String nombreCategoria,
+            String descripcionExtras, BigDecimal precioUnitario, int cantidad) {
+        if (id <= 0 || cantidad <= 0) {
+            throw new IllegalArgumentException("El id y la cantidad deben ser mayores que cero.");
+        }
+        this.id = id;
+        this.nombreProducto = Objects.requireNonNull(nombreProducto, "Falta el nombre historico del producto.");
+        this.nombreCategoria = Objects.requireNonNull(nombreCategoria, "Falta la categoria historica.");
+        this.descripcion_extras = Objects.requireNonNull(descripcionExtras, "Falta la descripcion historica de opciones.");
+        this.precio_Unitario = Objects.requireNonNull(precioUnitario, "Falta el precio historico.");
+        if (precioUnitario.signum() < 0) {
+            throw new IllegalArgumentException("El precio historico no puede ser negativo.");
+        }
+        this.cantidad = cantidad;
+        this.producto = null;
+        this.extras = List.of();
     }
 
     public long getId() { return id; }

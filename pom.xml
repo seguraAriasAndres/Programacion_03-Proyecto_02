@@ -92,7 +92,7 @@
     </build>
 
     <profiles>
-        <!-- Permite probar el dominio mientras los DAO y su servicio estan pendientes. -->
+        <!-- Prueba el dominio y los DAO de pedidos mientras inventario esta pendiente. -->
         <profile>
             <id>pruebas-modelos</id>
             <build>
@@ -109,12 +109,14 @@
                             </compilerArgs>
                             <includes>
                                 <include>cr/ac/una/est/programacion03proyecto02/model/**/*.java</include>
+                                <include>cr/ac/una/est/programacion03proyecto02/dao/pedidos/**/*.java</include>
                             </includes>
                             <excludes>
                                 <exclude>module-info.java</exclude>
                             </excludes>
                             <testIncludes>
                                 <testInclude>cr/ac/una/est/programacion03proyecto02/model/**/*Test.java</testInclude>
+                                <testInclude>cr/ac/una/est/programacion03proyecto02/dao/pedidos/**/*Test.java</testInclude>
                             </testIncludes>
                         </configuration>
                     </plugin>

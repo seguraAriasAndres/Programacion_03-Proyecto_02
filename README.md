@@ -37,8 +37,10 @@ se empaqueten en el JAR. El certificado CA publico esta en `config/aiven-ca.pem`
 
 Consulta [la guia de conexion](src/main/resources/db/README.md) para preparar el
 truststore y conocer las propiedades que utilizara la futura `ConexionDB`.
-Por ahora no se implementa esa clase ni se modifican los DAO. Tener estos archivos
-no abre una conexion automaticamente. Se utiliza `defaultdb`, segun el servidor
+La clase `ConexionDB` sigue pendiente. `ReciboDAO` recibe una conexion del servicio;
+esto permite avanzar
+en pedidos sin implementar esa infraestructura. Tener estos archivos
+no abre una conexion automaticamente. Se utiliza el schema `restaurante`, segun el servidor
 actual; no se crean bases ni tablas al iniciar o compilar el proyecto.
 
 ## Convención para los próximos módulos
@@ -75,8 +77,9 @@ DAO estén comentados y su servicio siga importándolos, utiliza el perfil de mo
 .\mvnw.cmd -Ppruebas-modelos clean test
 ```
 
-Este perfil compila y prueba únicamente el dominio (`model`), sin compilar los DAO,
-servicios ni la aplicación JavaFX. No requiere MySQL. Usa el `pom.xml` principal;
+Este perfil compila y prueba el dominio (`model`) y los DAO de pedidos, sin compilar
+el servicio de inventario pendiente ni la aplicación JavaFX. Por defecto no requiere
+MySQL; las pruebas JDBC se activan con `-Dpruebas.mysql=true`. Usa el `pom.xml` principal;
 no necesita archivos de configuración temporales. Si no encuentra pruebas, falla
 para evitar reportar éxito sin haber ejecutado ninguna.
 

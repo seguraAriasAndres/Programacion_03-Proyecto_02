@@ -25,9 +25,14 @@ public class Pedido {
 
 
     public Pedido (long idPedido, String nombreCliente) {
+        this(idPedido, nombreCliente, LocalDateTime.now());
+    }
+
+    /** Permite cargar un borrador sin reemplazar su fecha original por la actual. */
+    public Pedido(long idPedido, String nombreCliente, LocalDateTime fechaPedido) {
         this.idPedido = idPedido;
         this.nombreCliente = nombreCliente;
-        this.fechaPedido = LocalDateTime.now();
+        this.fechaPedido = Objects.requireNonNull(fechaPedido, "La fecha del pedido no puede ser null.");
         this.confirmado = false;
         this.estadoPreparacion = EstadoPreparacion.PENDIENTE;
         this.estadoPago = EstadoPago.PENDIENTE;
