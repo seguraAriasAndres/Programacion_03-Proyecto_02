@@ -14,6 +14,23 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class LineaPedidoTest {
     @Test
+    void recuperaElDesgloseHistoricoSinUnProductoDelCatalogoActual() {
+        long id = (long) Integer.MAX_VALUE + 200;
+        lineaPedido historica = lineaPedido.reconstruirHistorica(id, "Nombre original",
+                "Categoria original", "Con queso", new BigDecimal("1250.50"), 2);
+
+        assertAll(
+                () -> assertEquals(id, historica.getId()),
+                () -> assertEquals("Nombre original", historica.getNombreProducto()),
+                () -> assertEquals("Categoria original", historica.getNombreCategoria()),
+                () -> assertEquals("Con queso", historica.getDescripcionExtras()),
+                () -> assertEquals(new BigDecimal("2501.00"), historica.calcularSubTotal()),
+                () -> assertNull(historica.getProducto()),
+                () -> assertTrue(historica.getExtras().isEmpty())
+        );
+    }
+
+    @Test
     void protegeLaListaDeExtrasYConservaElPrecioOriginal() {
         Producto producto = new Producto(3, "Producto", new BigDecimal("1000"),
                 new Categoria(1, "Comidas", true), true);

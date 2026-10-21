@@ -6,7 +6,7 @@ import cr.ac.una.est.programacion03proyecto02.model.producto.Producto;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,7 +20,7 @@ class ReciboTest {
         lineaPedido linea = new lineaPedido(1, producto, 2);
         var lineas = new ArrayList<>(List.of(linea));
         Pago pago = new Pago(MetodoPago.EFECTIVO, new BigDecimal("2000"),
-                LocalDate.of(2026, 10, 19), "cajero");
+                LocalDateTime.of(2026, 10, 19, 14, 30), "cajero");
         Recibo recibo = new Recibo(10, 7, pago, lineas);
         lineas.clear();
         producto.setPrecioBase(new BigDecimal("5000"));
@@ -29,6 +29,7 @@ class ReciboTest {
                 () -> assertEquals(10, recibo.getId()),
                 () -> assertEquals(7, recibo.getIdPedido()),
                 () -> assertSame(pago, recibo.getPago()),
+                () -> assertEquals(LocalDateTime.of(2026, 10, 19, 14, 30), recibo.getPago().getFecha()),
                 () -> assertEquals(0, recibo.getTotal().compareTo(new BigDecimal("2000"))),
                 () -> assertEquals(1, recibo.getLineas().size()),
                 () -> assertThrows(UnsupportedOperationException.class,

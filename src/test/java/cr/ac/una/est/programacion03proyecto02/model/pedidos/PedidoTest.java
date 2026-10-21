@@ -8,12 +8,26 @@ import cr.ac.una.est.programacion03proyecto02.model.producto.Producto;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class PedidoTest {
+    @Test
+    void conservaLaFechaOriginalAlRecuperarUnBorradorConIdLong() {
+        LocalDateTime fechaOriginal = LocalDateTime.of(2026, 9, 15, 14, 35, 22);
+        long id = (long) Integer.MAX_VALUE + 100;
+
+        Pedido pedido = new Pedido(id, "Ana", fechaOriginal);
+        pedido.agregarLinea(linea(1, "1000", 2));
+        pedido.confirmar();
+
+        assertEquals(id, pedido.getIdPedido());
+        assertEquals(fechaOriginal, pedido.getFechaPedido());
+        assertThrows(NullPointerException.class, () -> new Pedido(id, "Ana", null));
+    }
+
     private lineaPedido linea(long id, String precio, int cantidad) {
         Producto producto = new Producto((int) id, "Producto " + id,
                 new BigDecimal(precio), new Categoria(1, "Comidas", true), true);
@@ -29,7 +43,7 @@ class PedidoTest {
 
     private Recibo recibo(Pedido pedido, long idPedido, String monto) {
         Pago pago = new Pago(MetodoPago.EFECTIVO, new BigDecimal(monto),
-                LocalDate.of(2026, 10, 19), "cajero");
+                LocalDateTime.of(2026, 10, 19, 14, 30), "cajero");
         return new Recibo(1, idPedido, pago, pedido.getLineas());
     }
 
@@ -128,7 +142,7 @@ class PedidoTest {
                 () -> pedido.registrarCobro(recibo(pedido, 99, "2000")));
         assertThrows(IllegalArgumentException.class,
                 () -> pedido.registrarCobro(recibo(pedido, 7, "1999")));
-        Pago pagoSinMetodo = new Pago(null, new BigDecimal("2000"), LocalDate.now(), "cajero");
+        Pago pagoSinMetodo = new Pago(null, new BigDecimal("2000"), LocalDateTime.now(), "cajero");
         assertThrows(IllegalArgumentException.class,
                 () -> pedido.registrarCobro(new Recibo(1, 7, pagoSinMetodo, pedido.getLineas())));
         assertNull(pedido.getRecibo());
@@ -144,7 +158,7 @@ class PedidoTest {
     void rechazaUnReciboConOtrasLineasAunqueElMontoCoincida() {
         Pedido pedido = pedidoConfirmado();
         Pago pago = new Pago(MetodoPago.EFECTIVO, new BigDecimal("2000"),
-                LocalDate.of(2026, 10, 19), "cajero");
+                LocalDateTime.of(2026, 10, 19, 14, 30), "cajero");
         Recibo recibo = new Recibo(1, 7, pago, List.of(linea(99, "1000", 2)));
 
         assertThrows(IllegalArgumentException.class, () -> pedido.registrarCobro(recibo));

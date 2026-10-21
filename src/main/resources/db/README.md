@@ -12,13 +12,14 @@ al confirmarse la transaccion. Git comparte codigo y scripts, no datos de MySQL.
   comprobado con `jar --describe-module`; `com.mysql.cj` es un paquete del driver.
 - Host: `restaurante-mysql-restaurante1234.a.aivencloud.com`.
 - Puerto: `10952`.
-- Schema actual: `defaultdb`.
+- Schema actual: `restaurante`.
 - TLS: `sslMode=VERIFY_IDENTITY`, con la CA de Aiven en un truststore PKCS12.
 - Configuracion externa: `config/database.local.properties`.
 
 `config/` vive en la raiz del proyecto, fuera de `src/main/resources`. Las
-credenciales no se incluyen en el JAR. No se han implementado `ConexionDB` ni DAO,
-ni se carga este archivo automaticamente desde la aplicacion actual.
+credenciales no se incluyen en el JAR. `ConexionDB` sigue pendiente y este archivo
+no se carga automaticamente desde la aplicacion actual. `ReciboDAO` recibe una
+conexion del servicio.
 
 ## Preparar otro equipo
 
@@ -71,10 +72,10 @@ reciban esa conexion no deben cerrarla ni confirmar la transaccion por su cuenta
 
 ## Schema y tablas del proyecto
 
-El servidor proporcionado tiene `defaultdb`, que se mantiene en esta configuracion.
-Si el equipo crea manualmente `restaurante`, cambia unicamente el ultimo segmento
-de `url`, de `/defaultdb` a `/restaurante`, en el archivo local y en la plantilla.
-Todos los modulos utilizaran el mismo schema del proyecto.
+El equipo creo el schema `restaurante` y la tabla `Recibo` en Aiven. La URL JDBC
+local y la plantilla apuntan a `/restaurante`. `defaultdb` sigue siendo la base
+inicial del proveedor y no se utiliza para las tablas del proyecto.
+Todos los modulos utilizaran el mismo schema `restaurante`.
 
 | Modulo | Tablas previstas en el alcance |
 |---|---|
