@@ -25,7 +25,21 @@ src/
     resources/                 # Fixtures y configuración de pruebas
 ```
 
-Las carpetas de pruebas quedan reservadas mediante `.gitkeep`; todavía no hay pruebas automatizadas ni scripts SQL en este repositorio.
+Las pruebas de modelos de inventario y pedidos viven en `src/test/java`.
+
+## Configuracion de MySQL en Aiven
+
+MySQL Connector/J esta declarado en Maven y en `module-info.java`. La configuracion
+compartida de ejemplo esta en `config/database.properties.example`; cada integrante
+usa `config/database.local.properties` con sus credenciales. Los archivos locales y
+el truststore estan excluidos de Git y fuera de `src/main/resources`, para que no
+se empaqueten en el JAR. El certificado CA publico esta en `config/aiven-ca.pem`.
+
+Consulta [la guia de conexion](src/main/resources/db/README.md) para preparar el
+truststore y conocer las propiedades que utilizara la futura `ConexionDB`.
+Por ahora no se implementa esa clase ni se modifican los DAO. Tener estos archivos
+no abre una conexion automaticamente. Se utiliza `defaultdb`, segun el servidor
+actual; no se crean bases ni tablas al iniciar o compilar el proyecto.
 
 ## Convención para los próximos módulos
 
@@ -52,9 +66,31 @@ El proyecto usa Maven Wrapper, Java release 21 y JavaFX 21.0.6. Configurar `JAVA
 
 El módulo Java y la clase de arranque mantienen los nombres configurados en `pom.xml`.
 
-Si el wrapper Windows falla al interpretar sus continuaciones de línea, se puede invocar el mismo Maven Wrapper directamente desde PowerShell:
+## Pruebas de modelos
+
+El proyecto configura Surefire 3.5.4 para ejecutar las pruebas JUnit 5. Mientras los
+DAO estén comentados y su servicio siga importándolos, utiliza el perfil de modelos:
 
 ```powershell
-$env:JAVA_HOME = 'C:\ruta\al\jdk'
-& "$env:JAVA_HOME\bin\java.exe" '-Dmaven.multiModuleProjectDirectory=.' -classpath '.mvn\wrapper\maven-wrapper.jar' org.apache.maven.wrapper.MavenWrapperMain -B -ntp clean verify
+.\mvnw.cmd -Ppruebas-modelos clean test
 ```
+
+Este perfil compila y prueba únicamente el dominio (`model`), sin compilar los DAO,
+servicios ni la aplicación JavaFX. No requiere MySQL. Usa el `pom.xml` principal;
+no necesita archivos de configuración temporales. Si no encuentra pruebas, falla
+para evitar reportar éxito sin haber ejecutado ninguna.
+
+En IntelliJ, abre el panel Maven y pulsa **Reload All Maven Projects** para que
+cargue las dependencias JUnit de alcance `test`. Si no aparece el panel Maven,
+haz clic derecho en `pom.xml` y selecciona **Add as Maven Project**. Verifica que
+`src/test/java` esté marcado como **Test Sources Root**. Después activa el perfil
+`pruebas-modelos` y ejecuta el objetivo `test` desde el panel Maven.
+Esta configuración no verifica el arranque JavaFX ni las transacciones de persistencia.
+
+La compilación completa sigue siendo `mvnw.cmd clean verify`; requiere que las
+clases DAO importadas por el servicio existan, aunque solo sean esqueletos. Para
+ejecutar la aplicación, desactiva el perfil de modelos y recompila el proyecto.
+
+Si Maven no encuentra Java, configura `JAVA_HOME` con la carpeta de un JDK 21 o
+superior. El wrapper Windows ejecuta Java en una sola línea para evitar errores
+al interpretar variables opcionales vacías junto a continuaciones de línea.

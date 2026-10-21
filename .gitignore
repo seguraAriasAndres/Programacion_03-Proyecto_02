@@ -37,3 +37,8 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Configuracion local de MySQL (fuera del classpath) ###
+/config/*.local.properties
+/config/*.p12
+/config/*.jks
