@@ -10,6 +10,6 @@ import java.util.Map;
 
 
 public interface IConsultaVentas {
-    public List<Pedido> pedidosPagados(LocalDateTime desde, LocalDateTime hasta);
-    public Map<Categoria, Producto> rankingProductos (LocalDateTime desde, LocalDateTime hasta);
+     List<Pedido> pedidosPagados(LocalDateTime desde, LocalDateTime hasta);
+     Map<Categoria, Producto> rankingProductos (LocalDateTime desde, LocalDateTime hasta);
 }
