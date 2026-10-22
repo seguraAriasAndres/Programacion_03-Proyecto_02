@@ -18,6 +18,8 @@ public class lineaPedido {
 
     private final Producto producto;
     private final List<OpcionProducto> extras;
+    private final long productoId;
+    private final List<Long> opcionIds;
 
 
     public lineaPedido(long id, Producto producto, int cantidad) {
@@ -42,6 +44,8 @@ public class lineaPedido {
 
         this.extras = seleccion;
         this.producto = producto;
+        this.productoId = producto.getId();
+        this.opcionIds = seleccion.stream().map(OpcionProducto::getId).toList();
 
     }
 
@@ -54,6 +58,27 @@ public class lineaPedido {
 
     private lineaPedido(long id, String nombreProducto, String nombreCategoria,
             String descripcionExtras, BigDecimal precioUnitario, int cantidad) {
+        this(id, 0, List.of(), nombreProducto, nombreCategoria, descripcionExtras, precioUnitario, cantidad);
+    }
+
+    /** Restaura referencias y precios guardados sin cargar ni recalcular el catalogo. */
+    public static lineaPedido reconstruirPersistida(long id, long productoId, List<Long> opcionIds,
+            String nombreProducto, String nombreCategoria, String descripcionExtras,
+            BigDecimal precioUnitario, int cantidad) {
+        if (productoId <= 0) {
+            throw new IllegalArgumentException("El producto persistido requiere un id positivo.");
+        }
+        List<Long> ids = List.copyOf(opcionIds);
+        if (ids.stream().anyMatch(opcionId -> opcionId <= 0)
+                || new java.util.HashSet<>(ids).size() != ids.size()) {
+            throw new IllegalArgumentException("Las opciones persistidas requieren ids positivos y unicos.");
+        }
+        return new lineaPedido(id, productoId, ids, nombreProducto, nombreCategoria,
+                descripcionExtras, precioUnitario, cantidad);
+    }
+
+    private lineaPedido(long id, long productoId, List<Long> opcionIds, String nombreProducto,
+            String nombreCategoria, String descripcionExtras, BigDecimal precioUnitario, int cantidad) {
         if (id <= 0 || cantidad <= 0) {
             throw new IllegalArgumentException("El id y la cantidad deben ser mayores que cero.");
         }
@@ -68,6 +93,29 @@ public class lineaPedido {
         this.cantidad = cantidad;
         this.producto = null;
         this.extras = List.of();
+        this.productoId = productoId;
+        this.opcionIds = opcionIds;
+    }
+
+    /** Copia la linea con su id generado sin recalcular nombres, opciones ni precios. */
+    public lineaPedido conIdPersistido(long nuevoId) {
+        if (nuevoId <= 0 || (id > 0 && id != nuevoId)) {
+            throw new IllegalArgumentException("El id persistido debe ser positivo y no reemplazar otro id existente.");
+        }
+        return new lineaPedido(nuevoId, this);
+    }
+
+    private lineaPedido(long id, lineaPedido origen) {
+        this.id = id;
+        this.nombreProducto = origen.nombreProducto;
+        this.nombreCategoria = origen.nombreCategoria;
+        this.descripcion_extras = origen.descripcion_extras;
+        this.precio_Unitario = origen.precio_Unitario;
+        this.cantidad = origen.cantidad;
+        this.producto = origen.producto;
+        this.extras = origen.extras;
+        this.productoId = origen.productoId;
+        this.opcionIds = origen.opcionIds;
     }
 
     public long getId() { return id; }
@@ -76,8 +124,12 @@ public class lineaPedido {
     public String getDescripcionExtras() { return descripcion_extras; }
     public BigDecimal getPrecioUnitario() { return precio_Unitario; }
     public int getCantidad() { return cantidad; }
+    /** Puede ser null al recuperar desde SQL; getProductoId() conserva la referencia. */
     public Producto getProducto() { return producto; }
+    /** Objetos cargados al crear la linea; al recuperar desde SQL se consultan getOpcionIds(). */
     public List<OpcionProducto> getExtras() { return extras; }
+    public long getProductoId() { return productoId; }
+    public List<Long> getOpcionIds() { return opcionIds; }
 
     public BigDecimal calcularSubtotal() {
         return precio_Unitario.multiply(BigDecimal.valueOf(cantidad));
