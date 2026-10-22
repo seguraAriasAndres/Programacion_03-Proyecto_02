@@ -218,7 +218,7 @@ class ReciboDAOTest {
                 }
             }
         }
-        assertEquals(List.of("id_recibo", "id_Pedido", "total_pago", "metodo_pago",
+        assertEquals(List.of("id_recibo", "id_pedido", "total_pago", "metodo_pago",
                 "fecha_recibo", "usuario_recibo"), columnas);
     }
 }

@@ -61,10 +61,10 @@ el truststore estan excluidos de Git y fuera de `src/main/resources`, para que n
 se empaqueten en el JAR. El certificado CA publico esta en `config/aiven-ca.pem`.
 
 Consulta [la guia de conexion](src/main/resources/db/README.md) para preparar el
-truststore y conocer las propiedades que utilizara la futura `ConexionDB`.
-La clase `ConexionDB` sigue pendiente. `ReciboDAO` recibe una conexion del servicio;
-esto permite avanzar
-en pedidos sin implementar esa infraestructura. Tener estos archivos
+truststore y conocer las propiedades que utiliza `ConexionDB`.
+`persistence.connection.ConexionDB` lee `config/database.local.properties` y
+devuelve una conexion nueva por llamada; `ReciboDAO` recibe una conexion del
+servicio. Tener estos archivos
 no abre una conexion automaticamente. Se utiliza el schema `restaurante`, segun el servidor
 actual; no se crean bases ni tablas al iniciar o compilar el proyecto.
 
