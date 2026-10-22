@@ -20,7 +20,7 @@ src/main/
     persistence/
       dao/
         inventario/              # DAO aún comentados
-        pedidos/                 # ReciboDAO
+        pedidos/                 # PedidoDAO, LineaPedidoDAO y ReciboDAO
     controller/
       seguridad/                 # Login, menú y reportes futuros
       catalogo/                  # Categorías y productos futuros
@@ -86,7 +86,7 @@ Las rutas de esta tabla son relativas al paquete base de Java:
 | Arranque y composición | `app` |
 
 Los paquetes pendientes se crean al incorporar sus clases. Dev 4 implementará
-`PedidoDAO` en `persistence.dao.pedidos`, `PedidoService`, `CobroService` e
+`PedidoService`, `CobroService` e
 `IConsultaVentas` en `logic.service.pedidos`, y `PedidoRepositorio` en
 `logic.repository.pedidos`.
 
@@ -99,12 +99,72 @@ Su `fx:controller` usa el paquete completo del controlador. `module-info.java`
 abre por ahora `controller.demo` a `javafx.fxml`; se abrirá cada paquete de negocio
 cuando contenga sus controladores. Abrir un paquete no abre sus subpaquetes.
 
-El arranque Maven apunta a `app.HelloApplication`. Los archivos DAO solo cambiaron
-de paquete e imports; no se modificaron sus consultas ni se implementaron los
-DAO comentados. La futura conexión compartida sigue pendiente.
+El arranque Maven apunta a `app.HelloApplication`. Los DAO comentados de inventario
+y la futura conexión compartida siguen pendientes.
 
 Los scripts SQL pertenecen a `src/main/resources/db`; los datos y scripts
 exclusivos de pruebas, a `src/test/resources`.
+
+## Guardado de borradores de pedidos
+
+`PedidoDAO.insertarBorrador(nombreCliente, nombreUsuario)` crea la cabecera vacía
+y devuelve el pedido con el ID generado por MySQL. El usuario es quien lo creó;
+guardar el borrador después no cambia ese dato ni la fecha original.
+
+`PedidoDAO.guardarBorrador(pedido)` guarda la cabecera y delega en `LineaPedidoDAO`
+la sincronización de `linea_pedido` y `linea_pedido_opcion`: inserta líneas nuevas
+con ID `0`, actualiza las existentes y elimina las retiradas junto con sus opciones.
+Las líneas existentes deben pertenecer al pedido. Los nombres y precios guardados
+son los que conserva la línea, sin recalcularlos desde el catálogo.
+
+El servicio debe usar una misma conexión con `autoCommit=false` y ejecutar el
+`commit` o `rollback`. Los DAO no cierran esa conexión. Si falla el guardado,
+`PedidoDAO` revierte sus cambios hasta un punto de guardado (`Savepoint`).
+El método devuelve una copia del pedido con los IDs de línea generados, de tipo
+`long`; el servicio debe conservar esa copia después de un `commit` exitoso y
+descartarla si revierte la transacción. Reutilizar el objeto anterior con IDs `0`
+haría que esas líneas se trataran otra vez como nuevas.
+
+`LineaPedidoDAO.sincronizar` es interno al paquete: las pantallas utilizan el
+servicio, y este utiliza `PedidoDAO` para guardar el borrador completo.
+
+## Consultas y estados de pedidos
+
+Los cinco métodos restantes de `PedidoDAO` conservan las firmas del UML; la
+conexión del constructor se usa en los listados y reportes, y los métodos que
+reciben `Connection` usan esa conexión de la transacción del servicio.
+
+| Método | Comportamiento |
+|---|---|
+| `buscarBloqueado(id, c)` | Recupera cabecera, líneas, IDs de opciones, descuentos y recibo. Bloquea las filas leídas y devuelve `null` si el pedido no existe. |
+| `actualizar(pedido, c)` | Guarda los estados y, al confirmar, las cantidades realmente descontadas. Comprueba las transiciones del modelo y conserva las líneas históricas. |
+| `listarActivos()` | Incluye borradores y pedidos en atención; excluye cancelados y los que ya están entregados y pagados. |
+| `listarPagados(desde, hasta)` | Recupera pedidos pagados completos por fecha del recibo. |
+| `ranking(desde, hasta)` | Devuelve `Map<Long, Long>` de producto a unidades vendidas, ordenado de mayor a menor, con desempate por ID. |
+
+Los rangos de ventas incluyen `desde` y excluyen `hasta`; para un día completo
+se usa desde su medianoche hasta la medianoche siguiente. Se usa la fecha de cobro,
+no la de creación del borrador. Los reportes excluyen cancelados y pedidos sin pagar.
+Los listados completos y las operaciones bloqueadas requieren `autoCommit=false`;
+`ranking`, que ejecuta una sola consulta, también puede usarse con autocommit.
+Ninguno de estos métodos confirma ni cierra la conexión.
+
+Antes de confirmar se guarda el borrador y se conserva el objeto devuelto con los
+IDs de líneas. El servicio registra en el modelo los descuentos efectivamente
+realizados por inventario, llama a `confirmar()` y a `actualizar(pedido, c)`, todo
+con la misma conexión. Para cobrar se inserta primero el recibo con `ReciboDAO`, se
+registra en el modelo el recibo con su ID generado y luego se llama a `actualizar`.
+La fecha del recibo se guarda con microsegundos, conforme a `DATETIME(6)`.
+Después se hace un único `commit`; cualquier fallo exige `rollback` y descartar los
+objetos modificados. Cancelar conserva los descuentos históricos; el servicio
+coordina su restitución al inventario una sola vez antes de actualizar el estado.
+
+`lineaPedido.reconstruirPersistida(...)` restaura nombres y precios históricos junto
+con `getProductoId()` y `getOpcionIds()`. Las referencias se conservan aunque cambie
+el catálogo. En líneas recuperadas, `getProducto()` devuelve `null` y `getExtras()`
+está vacío porque no se cargan objetos de catálogo; las opciones seleccionadas se
+consultan por sus IDs. El futuro servicio debe resolver esos IDs con catálogo para
+obtener recetas actuales al confirmar, sin recalcular los precios históricos.
 
 ## Compilación
 
@@ -132,7 +192,9 @@ cargue las dependencias JUnit de alcance `test`. Si no aparece el panel Maven,
 haz clic derecho en `pom.xml` y selecciona **Add as Maven Project**. Verifica que
 `src/test/java` esté marcado como **Test Sources Root**. Después activa el perfil
 `pruebas-modelos` y ejecuta el objetivo `test` desde el panel Maven.
-Esta configuración no verifica el arranque JavaFX ni las transacciones de persistencia.
+Esta configuración no verifica el arranque JavaFX. Al activar las pruebas JDBC,
+también comprueba el guardado y la reversión de pedidos usando tablas temporales
+de la sesión, sin escribir datos en las tablas permanentes del servidor.
 
 La compilación completa sigue siendo `mvnw.cmd clean verify`; requiere que las
 clases DAO importadas por el servicio existan, aunque solo sean esqueletos. Para
