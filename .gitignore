@@ -42,3 +42,6 @@ build/
 /config/*.local.properties
 /config/*.p12
 /config/*.jks
+
+### Diagramas compartidos fuera de Git ###
+/docs/
