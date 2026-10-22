@@ -13,6 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -45,6 +46,7 @@ public class ReciboDAO {
      * transaccion en esta misma conexion antes de cobrar.
      */
     public long insertar(Recibo recibo, Connection conexion) throws SQLException {
+        // Valida y guarda el recibo con su pago, y devuelve el ID long generado por MySQL.
         Objects.requireNonNull(conexion, "La conexion no puede ser null.");
         Objects.requireNonNull(recibo, "El recibo no puede ser null.");
         Pago pago = recibo.getPago();
@@ -66,7 +68,8 @@ public class ReciboDAO {
             sentencia.setLong(1, recibo.getIdPedido());
             sentencia.setBigDecimal(2, total);
             sentencia.setString(3, pago.getMetodo().name());
-            sentencia.setObject(4, pago.getFecha());
+            // DATETIME(6) conserva microsegundos, igual que la fecha de PedidoDAO.
+            sentencia.setObject(4, pago.getFecha().truncatedTo(ChronoUnit.MICROS));
             sentencia.setString(5, pago.getUsuario());
             if (sentencia.executeUpdate() != 1) {
                 throw new SQLException("No se inserto exactamente un recibo.");
@@ -86,14 +89,24 @@ public class ReciboDAO {
 
     /** Devuelve null si el pedido no tiene recibo; requiere linea_pedido para el desglose. */
     public Recibo buscarPorPedido(long pedidoId, Connection conexion) throws SQLException {
+        // Recupera el recibo completo del pedido sin solicitar bloqueos; devuelve null si no existe.
+        return buscarPorPedido(pedidoId, conexion, false);
+    }
+
+    /** PedidoDAO usa lecturas actuales al recuperar un agregado bloqueado. */
+    Recibo buscarPorPedido(long pedidoId, Connection conexion, boolean bloquear) throws SQLException {
+        // Recupera y valida el recibo, su pago y desglose histórico, aplicando el bloqueo solicitado.
         Objects.requireNonNull(conexion, "La conexion no puede ser null.");
         if (pedidoId <= 0) {
             throw new IllegalArgumentException("El id del pedido debe ser mayor que cero.");
         }
+        if (bloquear && conexion.getAutoCommit()) {
+            throw new SQLException("El bloqueo del recibo requiere autoCommit=false.");
+        }
         long id;
         BigDecimal total;
         Pago pago;
-        try (PreparedStatement sentencia = conexion.prepareStatement(BUSCAR)) {
+        try (PreparedStatement sentencia = conexion.prepareStatement(BUSCAR + (bloquear ? " FOR UPDATE" : ""))) {
             sentencia.setLong(1, pedidoId);
             try (ResultSet resultado = sentencia.executeQuery()) {
                 if (!resultado.next()) {
@@ -115,7 +128,7 @@ public class ReciboDAO {
             }
         }
 
-        List<lineaPedido> lineas = cargarDesglose(pedidoId, conexion);
+        List<lineaPedido> lineas = cargarDesglose(pedidoId, conexion, bloquear);
         Recibo recibo = new Recibo(id, pedidoId, pago, lineas);
         if (id <= 0 || total == null || total.signum() <= 0 || lineas.isEmpty()
                 || recibo.getTotal().compareTo(total) != 0 || pago.getMonto() == null
@@ -126,9 +139,10 @@ public class ReciboDAO {
         return recibo;
     }
 
-    private List<lineaPedido> cargarDesglose(long pedidoId, Connection conexion) throws SQLException {
+    private List<lineaPedido> cargarDesglose(long pedidoId, Connection conexion, boolean bloquear) throws SQLException {
+        // Reconstruye el desglose histórico del recibo desde las líneas guardadas, sin recalcular el catálogo.
         List<lineaPedido> lineas = new ArrayList<>();
-        try (PreparedStatement sentencia = conexion.prepareStatement(BUSCAR_LINEAS)) {
+        try (PreparedStatement sentencia = conexion.prepareStatement(BUSCAR_LINEAS + (bloquear ? " FOR UPDATE" : ""))) {
             sentencia.setLong(1, pedidoId);
             try (ResultSet resultado = sentencia.executeQuery()) {
                 while (resultado.next()) {
@@ -147,6 +161,7 @@ public class ReciboDAO {
     }
 
     private BigDecimal importeSQL(BigDecimal importe) {
+        // Comprueba que el importe quepa en DECIMAL(15,2) sin necesitar redondeo.
         try {
             BigDecimal exacto = importe.setScale(2, RoundingMode.UNNECESSARY);
             if (exacto.precision() > 15) {
