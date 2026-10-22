@@ -110,6 +110,7 @@
                             <includes>
                                 <include>cr/ac/una/est/programacion03proyecto02/logic/model/**/*.java</include>
                                 <include>cr/ac/una/est/programacion03proyecto02/persistence/dao/pedidos/**/*.java</include>
+                                <include>cr/ac/una/est/programacion03proyecto02/persistence/connection/**/*.java</include>
                             </includes>
                             <excludes>
                                 <exclude>module-info.java</exclude>
@@ -117,6 +118,7 @@
                             <testIncludes>
                                 <testInclude>cr/ac/una/est/programacion03proyecto02/logic/model/**/*Test.java</testInclude>
                                 <testInclude>cr/ac/una/est/programacion03proyecto02/persistence/dao/pedidos/**/*Test.java</testInclude>
+                                <testInclude>cr/ac/una/est/programacion03proyecto02/persistence/connection/**/*Test.java</testInclude>
                             </testIncludes>
                         </configuration>
                     </plugin>

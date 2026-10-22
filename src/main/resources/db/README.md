@@ -17,9 +17,9 @@ al confirmarse la transaccion. Git comparte codigo y scripts, no datos de MySQL.
 - Configuracion externa: `config/database.local.properties`.
 
 `config/` vive en la raiz del proyecto, fuera de `src/main/resources`. Las
-credenciales no se incluyen en el JAR. `persistence.connection.ConexionDB` sigue pendiente y este archivo
-no se carga automaticamente desde la aplicacion actual. `ReciboDAO` recibe una
-conexion del servicio.
+credenciales no se incluyen en el JAR. `persistence.connection.ConexionDB` lee
+ese archivo con `Properties.load` y devuelve una conexion nueva por llamada.
+`ReciboDAO` recibe una conexion del servicio.
 
 ## Preparar otro equipo
 
@@ -50,16 +50,17 @@ La plantilla y `config/aiven-ca.pem` se comparten en Git. El archivo
 `*.local.properties` y los almacenes `*.p12` / `*.jks` de `config/` estan ignorados.
 No compartas capturas, archivos o configuraciones de ejecucion con contrasenas.
 
-## Contrato para la futura ConexionDB
+## Contrato de ConexionDB
 
-Cuando se implemente, la clase compartida debera leer el archivo local con
-`Properties.load` y extraer la propiedad `url`. Las demas propiedades del archivo
-son propiedades JDBC que se pasan a `DriverManager.getConnection(url, properties)`.
-La propiedad `url` se retira de ese objeto antes de pasarlo al driver.
+`ConexionDB` lee el archivo local con `Properties.load` y extrae la propiedad
+`url`. Las demas propiedades del archivo son propiedades JDBC que se pasan a
+`DriverManager.getConnection(url, properties)`. La propiedad `url` se retira de
+ese objeto antes de pasarlo al driver.
 
 Ejecuta desde la raiz del proyecto para que `file:config/aiven-truststore.p12`
-resuelva correctamente. La futura clase podra permitir configurar una ruta
-absoluta en otros entornos. No hace falta definir VM options globales de TLS:
+resuelva correctamente. `ConexionDB` permite configurar una ruta absoluta en
+otros entornos cambiando esa propiedad en el archivo local. No hace falta
+definir VM options globales de TLS:
 el truststore ya se indica mediante propiedades de Connector/J.
 
 No hace falta `Class.forName`: el driver se registra mediante el proveedor JDBC
@@ -79,13 +80,14 @@ Todos los modulos utilizaran el mismo schema `restaurante`.
 
 | Modulo | Tablas previstas en el alcance |
 |---|---|
-| Seguridad | usuario, auditoria_login |
+| Seguridad | usuario, auditoria_login (`01_seguridad.sql`) |
 | Catalogo | categoria, producto, opcion_producto, receta_item |
 | Inventario | ingrediente, movimiento_stock |
 | Pedidos y cobro | pedido, linea_pedido, ingredientes_descontados, recibo |
 
 El alcance guarda los datos de Pago en recibo; no se agrega otra tabla sin acuerdo.
-La tabla anterior es una referencia, no un esquema SQL implementado.
+Ya existen en Aiven las tablas de seguridad (`01_seguridad.sql`) y las de pedidos
+y cobro; catalogo e inventario siguen pendientes de que su modulo ejecute su script.
 
 `00_crear_base.sql` es una alternativa manual para crear `restaurante`. No se
 ejecuta al compilar o iniciar la aplicacion; puedes crear el schema en Workbench.
@@ -97,6 +99,13 @@ Las pruebas de modelos siguen ejecutandose sin base de datos:
 
 ```powershell
 .\mvnw.cmd -Ppruebas-modelos test
+```
+
+Con `config/database.local.properties` configurado, las pruebas contra Aiven se
+activan con la propiedad de sistema `pruebas.mysql`:
+
+```powershell
+.\mvnw.cmd -Ppruebas-modelos test "-Dpruebas.mysql=true"
 ```
 
 La compilacion completa sigue pendiente de los DAO actualmente comentados que el
