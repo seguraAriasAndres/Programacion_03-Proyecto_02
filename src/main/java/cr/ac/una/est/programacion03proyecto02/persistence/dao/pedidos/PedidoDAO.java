@@ -177,34 +177,39 @@ public class PedidoDAO {
     }
 
     /** Recupera el agregado completo y bloquea su cabecera hasta commit/rollback. Devuelve null si no existe. */
-    public Pedido buscarBloqueado(long id, Connection c) throws SQLException {
+    public Pedido buscarBloqueado(long id) throws SQLException {
         // Recupera el pedido completo y bloquea sus datos en la transacción; devuelve null si no existe.
-        exigirTransaccion(c);
+        exigirTransaccion(conexion);
         validarId(id);
-        Cabecera cabecera = buscarCabeceraBloqueada(id, c);
-        return cabecera == null ? null : cargarPedido(cabecera, c, true);
+        Cabecera cabecera = buscarCabeceraBloqueada(id, conexion);
+        return cabecera == null ? null : cargarPedido(cabecera, conexion, true);
+    }
+
+    public Pedido buscarBloqueado(long id, Connection c) throws SQLException {
+        // Mantiene la firma del UML utilizando la conexión explícita de la transacción del servicio.
+        return new PedidoDAO(c).buscarBloqueado(id);
     }
 
     /**
      * Persiste las transiciones del modelo y, al confirmar, el descuento historico.
      * Las lineas deben estar guardadas previamente con guardarBorrador.
-     * El inventario y la insercion del recibo corresponden a los servicios, usando c.
+     * El inventario y la insercion del recibo corresponden a los servicios, usando esta misma conexion.
      */
-    public void actualizar(Pedido pedido, Connection c) throws SQLException {
+    public void actualizar(Pedido pedido) throws SQLException {
         // Valida y guarda los cambios de estado y, al confirmar, los ingredientes realmente descontados.
-        exigirTransaccion(c);
+        exigirTransaccion(conexion);
         Objects.requireNonNull(pedido, "El pedido no puede ser null.");
         validarId(pedido.getIdPedido());
-        Savepoint inicio = c.setSavepoint();
+        Savepoint inicio = conexion.setSavepoint();
         try {
-            Cabecera cabecera = buscarCabeceraBloqueada(pedido.getIdPedido(), c);
+            Cabecera cabecera = buscarCabeceraBloqueada(pedido.getIdPedido(), conexion);
             if (cabecera == null) {
                 throw new SQLException("El pedido no existe.");
             }
-            Recibo reciboSQL = recibos.buscarPorPedido(cabecera.id(), c, true);
+            Recibo reciboSQL = recibos.buscarPorPedido(cabecera.id(), conexion, true);
             // Durante cobrar(), el recibo se inserta antes de actualizar estado_pago.
-            Pedido anterior = reconstruir(cabecera, lineas.cargar(cabecera.id(), c, true),
-                    cargarDescuentos(cabecera.id(), c, true),
+            Pedido anterior = reconstruir(cabecera, lineas.cargar(cabecera.id(), conexion, true),
+                    cargarDescuentos(cabecera.id(), conexion, true),
                     cabecera.pago() == EstadoPago.PAGADO ? reciboSQL : null);
             validarDatosConservados(anterior, pedido);
             Pedido.reconstruir(pedido.getIdPedido(), pedido.getNombreCliente(), pedido.getFechaPedido(),
@@ -240,9 +245,9 @@ public class PedidoDAO {
             }
 
             if (confirmando) {
-                guardarDescuentos(pedido, c);
+                guardarDescuentos(pedido, conexion);
             }
-            try (PreparedStatement sentencia = c.prepareStatement(ACTUALIZAR_ESTADOS)) {
+            try (PreparedStatement sentencia = conexion.prepareStatement(ACTUALIZAR_ESTADOS)) {
                 sentencia.setBoolean(1, pedido.isConfirmado());
                 sentencia.setString(2, pedido.getEstadoPreparacion().name());
                 sentencia.setString(3, pedido.getEstadoPago().name());
@@ -251,11 +256,16 @@ public class PedidoDAO {
                     throw new SQLException("Se actualizo mas de un pedido.");
                 }
             }
-            c.releaseSavepoint(inicio);
+            conexion.releaseSavepoint(inicio);
         } catch (SQLException | RuntimeException error) {
-            revertirHasta(c, inicio, error);
+            revertirHasta(conexion, inicio, error);
             throw error;
         }
+    }
+
+    public void actualizar(Pedido pedido, Connection c) throws SQLException {
+        // Mantiene la firma del UML y delega en la actualización que usa la conexión recibida.
+        new PedidoDAO(c).actualizar(pedido);
     }
 
     /** Incluye borradores; excluye cancelados y los que estan ENTREGADO y PAGADO. */
@@ -350,7 +360,7 @@ public class PedidoDAO {
         }
     }
 
-    private List<Pedido> listar(String sql, LocalDateTime desde, LocalDateTime hasta) throws SQLException {
+    private List <Pedido> listar(String sql, LocalDateTime desde, LocalDateTime hasta) throws SQLException {
         // Ejecuta una consulta de cabeceras, completa cada pedido y devuelve una lista protegida.
         List<Cabecera> cabeceras = new ArrayList<>();
         try (PreparedStatement sentencia = conexion.prepareStatement(sql)) {

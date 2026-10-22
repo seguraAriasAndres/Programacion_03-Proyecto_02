@@ -17,6 +17,9 @@ src/main/
         pedidos/                 # Pedido, lineaPedido, Pago, Recibo y enums
       service/
         inventario/              # Servicio y contrato de inventario
+        pedidos/                 # CobroService
+      repository/
+        pedidos/                 # PedidoRepository: caché de pedidos activos
     persistence/
       dao/
         inventario/              # DAO aún comentados
@@ -85,10 +88,9 @@ Las rutas de esta tabla son relativas al paquete base de Java:
 | Navegación JavaFX | `view.navigation` (clases Java, cuando se implemente) |
 | Arranque y composición | `app` |
 
-Los paquetes pendientes se crean al incorporar sus clases. Dev 4 implementará
-`PedidoService`, `CobroService` e
-`IConsultaVentas` en `logic.service.pedidos`, y `PedidoRepositorio` en
-`logic.repository.pedidos`.
+Los paquetes pendientes se crean al incorporar sus clases. `CobroService` vive en
+`logic.service.pedidos` y `PedidoRepository` en `logic.repository.pedidos`.
+`PedidoService` e `IConsultaVentas` siguen pendientes.
 
 Los controladores usan servicios y modelos. Los servicios coordinan reglas de
 negocio y transacciones; los DAO ejecutan SQL. Un controlador no abre conexiones,
@@ -100,7 +102,7 @@ abre por ahora `controller.demo` a `javafx.fxml`; se abrirá cada paquete de neg
 cuando contenga sus controladores. Abrir un paquete no abre sus subpaquetes.
 
 El arranque Maven apunta a `app.HelloApplication`. Los DAO comentados de inventario
-y la futura conexión compartida siguen pendientes.
+siguen pendientes; `ConexionDB` ya está disponible.
 
 Los scripts SQL pertenecen a `src/main/resources/db`; los datos y scripts
 exclusivos de pruebas, a `src/test/resources`.
@@ -130,9 +132,10 @@ servicio, y este utiliza `PedidoDAO` para guardar el borrador completo.
 
 ## Consultas y estados de pedidos
 
-Los cinco métodos restantes de `PedidoDAO` conservan las firmas del UML; la
-conexión del constructor se usa en los listados y reportes, y los métodos que
-reciben `Connection` usan esa conexión de la transacción del servicio.
+`PedidoDAO` usa la conexión de su constructor en todas las operaciones. También
+conserva las sobrecargas del UML `buscarBloqueado(id, c)` y `actualizar(pedido, c)`;
+estas usan la conexión explícita recibida. El servicio crea el DAO con la misma
+conexión que entrega a inventario y a `ReciboDAO` para esa operación.
 
 | Método | Comportamiento |
 |---|---|
@@ -166,6 +169,37 @@ está vacío porque no se cargan objetos de catálogo; las opciones seleccionada
 consultan por sus IDs. El futuro servicio debe resolver esos IDs con catálogo para
 obtener recetas actuales al confirmar, sin recalcular los precios históricos.
 
+## Cobro y caché de pedidos
+
+El arranque puede componer estas dependencias sin mantener conexiones abiertas:
+
+```java
+ConexionDB bd = new ConexionDB();
+PedidoRepository repositorio = new PedidoRepository(bd);
+CobroService cobros = new CobroService(repositorio, new ReciboDAO(), bd);
+```
+
+`CobroService` pertenece a `logic.service.pedidos`. Su método es
+`cobrar(long id, MetodoPago metodo, String usuario)` y propaga `SQLException` para
+que la futura interfaz presente los errores. Ya no recibe un `PedidoDAO` en el
+constructor: lo crea dentro de cada cobro con la conexión nueva de `ConexionDB`.
+
+El cobro carga el pedido desde SQL con bloqueo, comprueba que esté confirmado,
+sin cancelar y pendiente de pago, calcula el total histórico, inserta el recibo,
+actualiza el estado a `PAGADO` y hace un único `commit`. Si algo falla antes de
+confirmar, hace `rollback`. La fecha del pago corresponde al cobro actual.
+Después del commit actualiza la caché y cierra la conexión. No depende de que el
+pedido ya esté en memoria ni utiliza el total posiblemente atrasado de la caché.
+
+`PedidoRepository.recargarActivos()` abre y cierra su propia conexión, confirma
+la lectura y reemplaza la caché completa solo si tiene éxito. Propaga
+`SQLException`; si falla, conserva los pedidos que ya tenía.
+`obtenerPedidoPorId()` y `listarPedidosActivos()` consultan únicamente memoria y
+devuelven copias para que una edición externa no cambie el estado almacenado.
+`actualizarTrasCommit()` tampoco ejecuta SQL: actualiza o retira el pedido del mapa
+según sus estados. La caché es local a cada ejecución; los cambios de otros equipos
+se obtienen al recargar y las operaciones críticas vuelven a consultar MySQL.
+
 ## Compilación
 
 El proyecto usa Maven Wrapper, Java release 21 y JavaFX 21.0.6. Configurar `JAVA_HOME` hacia un JDK compatible y ejecutar `mvnw.cmd clean verify` en Windows o `./mvnw clean verify` en otros sistemas. La aplicación se inicia con `mvnw.cmd javafx:run`.
@@ -181,7 +215,8 @@ DAO estén comentados y su servicio siga importándolos, utiliza el perfil de mo
 .\mvnw.cmd -Ppruebas-modelos clean test
 ```
 
-Este perfil compila y prueba el dominio (`model`) y los DAO de pedidos, sin compilar
+Este perfil compila y prueba el dominio (`model`), los DAO, la conexión, el
+repositorio y el servicio de cobro de pedidos, sin compilar
 el servicio de inventario pendiente ni la aplicación JavaFX. Por defecto no requiere
 MySQL; las pruebas JDBC se activan con `-Dpruebas.mysql=true`. Usa el `pom.xml` principal;
 no necesita archivos de configuración temporales. Si no encuentra pruebas, falla
