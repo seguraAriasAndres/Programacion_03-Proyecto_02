@@ -76,7 +76,7 @@
                         <configuration>
                             <!-- Aquí actualizamos al nombre correcto de la clase de arranque -->
                             <mainClass>
-                                cr.ac.una.est.programacion03proyecto/cr.ac.una.est.programacion03proyecto02.HelloApplication
+                                cr.ac.una.est.programacion03proyecto/cr.ac.una.est.programacion03proyecto02.app.HelloApplication
                             </mainClass>
                             <launcher>app</launcher>
                             <jlinkZipName>app</jlinkZipName>
@@ -105,18 +105,18 @@
                             <!-- Evita que javac incorpore module-info.java por busqueda implicita. -->
                             <compilerArgs>
                                 <arg>--source-path</arg>
-                                <arg>${project.basedir}/src/main/java/cr/ac/una/est/programacion03proyecto02/model</arg>
+                                <arg>${project.basedir}/src/main/java/cr/ac/una/est/programacion03proyecto02/logic/model</arg>
                             </compilerArgs>
                             <includes>
-                                <include>cr/ac/una/est/programacion03proyecto02/model/**/*.java</include>
-                                <include>cr/ac/una/est/programacion03proyecto02/dao/pedidos/**/*.java</include>
+                                <include>cr/ac/una/est/programacion03proyecto02/logic/model/**/*.java</include>
+                                <include>cr/ac/una/est/programacion03proyecto02/persistence/dao/pedidos/**/*.java</include>
                             </includes>
                             <excludes>
                                 <exclude>module-info.java</exclude>
                             </excludes>
                             <testIncludes>
-                                <testInclude>cr/ac/una/est/programacion03proyecto02/model/**/*Test.java</testInclude>
-                                <testInclude>cr/ac/una/est/programacion03proyecto02/dao/pedidos/**/*Test.java</testInclude>
+                                <testInclude>cr/ac/una/est/programacion03proyecto02/logic/model/**/*Test.java</testInclude>
+                                <testInclude>cr/ac/una/est/programacion03proyecto02/persistence/dao/pedidos/**/*Test.java</testInclude>
                             </testIncludes>
                         </configuration>
                     </plugin>

@@ -2,30 +2,55 @@ Este es el conjunto de archivos en repositorio que conforman el proyecto #02 de 
 
 ## Organización del proyecto
 
-Paquete base: `cr.ac.una.est.programacion03proyecto02`. Las capas son comunes a todo el equipo; los módulos se agrupan dentro de cada capa cuando tienen código.
+Paquete base: `cr.ac.una.est.programacion03proyecto02`. Se usan nombres de paquetes
+en minúscula, como es habitual en Java. La separación por capa es común a todo el
+equipo; dentro de cada capa se agrupa el código por módulo.
 
 ```text
-src/
-  main/
-    java/
-      module-info.java
-      cr/ac/una/est/programacion03proyecto02/
-        HelloApplication.java
-        Launcher.java
-        model/inventario/       # Entidades y enum existentes
-        dao/inventario/         # Persistencia existente
-        service/inventario/     # Servicio y su contrato existente
-        controller/            # HelloController
-    resources/
-      cr/ac/una/est/programacion03proyecto02/view/
-        hello-view.fxml
-      db/                      # Ubicación compartida de scripts SQL
-  test/
-    java/                      # Pruebas con los mismos paquetes que main/java
-    resources/                 # Fixtures y configuración de pruebas
+src/main/
+  java/cr/ac/una/est/programacion03proyecto02/
+    app/                         # HelloApplication y Launcher: arranque
+    logic/
+      model/
+        catalogo/                # Producto, Categoria, OpcionProducto y enums
+        inventario/              # Ingredientes, recetas y movimientos
+        pedidos/                 # Pedido, lineaPedido, Pago, Recibo y enums
+      service/
+        inventario/              # Servicio y contrato de inventario
+    persistence/
+      dao/
+        inventario/              # DAO aún comentados
+        pedidos/                 # ReciboDAO
+    controller/
+      seguridad/                 # Login, menú y reportes futuros
+      catalogo/                  # Categorías y productos futuros
+      inventario/                # Ingredientes y movimientos futuros
+      pedidos/                   # Pedidos y cobro futuros
+      demo/                      # HelloController temporal
+  resources/cr/ac/una/est/programacion03proyecto02/
+    view/
+      seguridad/
+      catalogo/
+      inventario/
+      pedidos/
+      demo/hello-view.fxml
+  resources/db/                  # Scripts SQL y guía de conexión
+src/test/java/                   # Misma estructura de paquetes que main/java
 ```
 
-Las pruebas de modelos de inventario y pedidos viven en `src/test/java`.
+`controller` está al mismo nivel que `logic` y `persistence`. `view` conserva el
+mismo paquete base bajo `resources`: Maven coloca las clases y los recursos en el
+classpath del programa. Los FXML permanecen separados del código fuente Java.
+
+Los archivos `.gitkeep` conservan en Git las carpetas de controladores y vistas
+que aún no tienen implementación. No son clases ni funcionalidades terminadas.
+No se crearon los controladores de negocio: la demo sigue siendo la pantalla que
+abre la aplicación.
+
+Los nombres de clases existentes se conservan, incluidos `lineaPedido` y los
+nombres en minúscula de inventario. El paquete de catálogo se unificó como
+`catalogo` y los enums se agrupan en `enums`. Las interfaces permanecen junto al
+servicio que define su contrato.
 
 ## Configuracion de MySQL en Aiven
 
@@ -45,22 +70,41 @@ actual; no se crean bases ni tablas al iniciar o compilar el proyecto.
 
 ## Convención para los próximos módulos
 
-| Capa | Ubicación bajo el paquete base |
+Las rutas de esta tabla son relativas al paquete base de Java:
+
+| Responsabilidad | Paquete |
 |---|---|
-| Entidades y enums | `model/catalogo`, `model/inventario`, `model/pedidos`, `model/seguridad`, `model/reportes` |
-| DAO | `dao/catalogo`, `dao/inventario`, `dao/pedidos`, `dao/seguridad` |
-| Servicios y contratos | `service/catalogo`, `service/inventario`, `service/pedidos`, `service/seguridad`, `service/reportes` |
-| Caché de pedidos | `repository/pedidos` |
-| Controladores JavaFX | `controller/<modulo>` |
-| Infraestructura compartida | `infrastructure` |
+| Modelos | `logic.model.<modulo>` |
+| Enums | `logic.model.<modulo>.enums`, o el paquete del modelo existente en inventario |
+| Servicios e interfaces | `logic.service.<modulo>` |
+| Repositorio de pedidos | `logic.repository.pedidos` |
+| Sesión y autenticación | `logic.service.seguridad` |
+| DAO | `persistence.dao.<modulo>` |
+| Conexión MySQL | `persistence.connection` |
+| Controladores JavaFX | `controller.<modulo>` |
+| Navegación JavaFX | `view.navigation` (clases Java, cuando se implemente) |
+| Arranque y composición | `app` |
 
-Los subpaquetes se crean al incorporar clases reales. Las interfaces Java permanecen junto a los servicios que las exponen, sin una carpeta por integrante. Dev 4 colocará Pedido, LineaPedido, Pago, Recibo y sus enums en `model/pedidos`; PedidoDAO y ReciboDAO en `dao/pedidos`; PedidoService, CobroService e IConsultaVentas en `service/pedidos`; y PedidoRepositorio en `repository/pedidos`.
+Los paquetes pendientes se crean al incorporar sus clases. Dev 4 implementará
+`PedidoDAO` en `persistence.dao.pedidos`, `PedidoService`, `CobroService` e
+`IConsultaVentas` en `logic.service.pedidos`, y `PedidoRepositorio` en
+`logic.repository.pedidos`.
 
-Catálogo y pedidos consumirán el contrato de inventario desde `service/inventario`; pedidos consumirá catálogo desde `service/catalogo`; reportes consumirá IConsultaVentas desde `service/pedidos`. Esta reorganización conserva los nombres y firmas existentes.
+Los controladores usan servicios y modelos. Los servicios coordinan reglas de
+negocio y transacciones; los DAO ejecutan SQL. Un controlador no abre conexiones,
+no ejecuta SQL y no accede directamente a los DAO.
 
-Los FXML de cada módulo se ubicarán en `src/main/resources/cr/ac/una/est/programacion03proyecto02/view/<modulo>`, con CSS e imágenes como recursos. Se cargan con rutas absolutas de classpath, y su `fx:controller` debe usar el paquete completo del controlador. Cada paquete de controladores que use FXML debe declararse con `opens ... to javafx.fxml` en `module-info.java`.
+Los FXML se cargan desde `/cr/ac/una/est/programacion03proyecto02/view/<modulo>/`.
+Su `fx:controller` usa el paquete completo del controlador. `module-info.java`
+abre por ahora `controller.demo` a `javafx.fxml`; se abrirá cada paquete de negocio
+cuando contenga sus controladores. Abrir un paquete no abre sus subpaquetes.
 
-Los scripts SQL pertenecen a `src/main/resources/db`; los datos y scripts exclusivos de pruebas, a `src/test/resources`.
+El arranque Maven apunta a `app.HelloApplication`. Los archivos DAO solo cambiaron
+de paquete e imports; no se modificaron sus consultas ni se implementaron los
+DAO comentados. La futura conexión compartida sigue pendiente.
+
+Los scripts SQL pertenecen a `src/main/resources/db`; los datos y scripts
+exclusivos de pruebas, a `src/test/resources`.
 
 ## Compilación
 

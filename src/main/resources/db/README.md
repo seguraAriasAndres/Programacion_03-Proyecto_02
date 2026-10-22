@@ -17,7 +17,7 @@ al confirmarse la transaccion. Git comparte codigo y scripts, no datos de MySQL.
 - Configuracion externa: `config/database.local.properties`.
 
 `config/` vive en la raiz del proyecto, fuera de `src/main/resources`. Las
-credenciales no se incluyen en el JAR. `ConexionDB` sigue pendiente y este archivo
+credenciales no se incluyen en el JAR. `persistence.connection.ConexionDB` sigue pendiente y este archivo
 no se carga automaticamente desde la aplicacion actual. `ReciboDAO` recibe una
 conexion del servicio.
 
