@@ -51,8 +51,9 @@ public class ReporteService {
     }
 
     /**
-     * Mas vendidos primero. El nombre sale del historico de la linea; si la linea
-     * historica no conservo el producto, se informa "Producto &lt;id&gt;".
+     * Mas vendidos primero. El nombre sale del historico de la linea: usa el
+     * productoId persistido; si la linea es anterior y no lo conserva, usa el
+     * producto en memoria; si tampoco existe, "Producto &lt;id&gt;".
      */
     public List<ProductoRanking> ranking(LocalDateTime desde, LocalDateTime hasta) throws SQLException {
         validarRango(desde, hasta);
@@ -60,8 +61,11 @@ public class ReporteService {
         Map<Long, String> nombres = new HashMap<>();
         for (Pedido pedido : ventas.pedidosPagadosEntre(desde, hasta)) {
             for (lineaPedido linea : pedido.getLineas()) {
-                if (linea.getProducto() != null) {
-                    nombres.put(linea.getProducto().getId(), linea.getNombreProducto());
+                long productoId = linea.getProductoId() > 0
+                        ? linea.getProductoId()
+                        : (linea.getProducto() != null ? linea.getProducto().getId() : 0);
+                if (productoId > 0) {
+                    nombres.put(productoId, linea.getNombreProducto());
                 }
             }
         }

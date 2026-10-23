@@ -18,6 +18,7 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -214,7 +215,8 @@ class ReciboDAOTest {
             sentencia.setString(2, "Recibo");
             try (var resultado = sentencia.executeQuery()) {
                 while (resultado.next()) {
-                    columnas.add(resultado.getString(1));
+                    // Los nombres de columnas de MySQL no distinguen mayusculas.
+                    columnas.add(resultado.getString(1).toLowerCase(Locale.ROOT));
                 }
             }
         }

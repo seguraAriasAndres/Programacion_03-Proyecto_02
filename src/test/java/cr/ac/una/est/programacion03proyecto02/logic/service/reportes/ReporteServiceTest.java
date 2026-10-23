@@ -101,18 +101,23 @@ class ReporteServiceTest {
         Producto producto = new Producto(7, "Hamburguesa",
                 new BigDecimal("2500.00"), new Categoria(1, "Comida", true), true);
         ReporteService reportes = servicio(
-                List.of(pedidoCon(new lineaPedido(10, producto, 2))),
-                Map.of(7L, 2, 9L, 5));
+                List.of(
+                        pedidoCon(new lineaPedido(10, producto, 2)),
+                        pedidoCon(lineaPedido.reconstruirPersistida(11, 8L, List.of(),
+                                "Refresco", "Bebidas", "", new BigDecimal("1500.00"), 1))),
+                Map.of(7L, 2, 9L, 5, 8L, 1));
 
         List<ProductoRanking> ranking = reportes.ranking(DESDE, HASTA);
 
         assertAll(
-                () -> assertEquals(2, ranking.size()),
+                () -> assertEquals(3, ranking.size()),
                 () -> assertEquals(9, ranking.get(0).getProductoId()),
                 () -> assertEquals(5, ranking.get(0).getUnidades()),
                 () -> assertEquals("Producto 9", ranking.get(0).getNombreProducto()),
                 () -> assertEquals(7, ranking.get(1).getProductoId()),
-                () -> assertEquals("Hamburguesa", ranking.get(1).getNombreProducto()));
+                () -> assertEquals("Hamburguesa", ranking.get(1).getNombreProducto()),
+                () -> assertEquals(8, ranking.get(2).getProductoId()),
+                () -> assertEquals("Refresco", ranking.get(2).getNombreProducto()));
     }
 
     @Test
