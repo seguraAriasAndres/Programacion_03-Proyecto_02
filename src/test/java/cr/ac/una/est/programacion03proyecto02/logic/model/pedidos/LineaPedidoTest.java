@@ -14,6 +14,38 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class LineaPedidoTest {
     @Test
+    void reconstruyeReferenciasPersistidasSinInventarCatalogoYProtegeSusIds() {
+        var ids = new ArrayList<>(List.of(5_000_000_001L));
+        lineaPedido linea = lineaPedido.reconstruirPersistida(4_000_000_001L, 6_000_000_001L, ids,
+                "Nombre original", "Comidas", "Queso", new BigDecimal("1200.00"), 2);
+        ids.clear();
+        assertNull(linea.getProducto());
+        assertEquals(6_000_000_001L, linea.getProductoId());
+        assertEquals(List.of(5_000_000_001L), linea.getOpcionIds());
+        assertEquals(new BigDecimal("2400.00"), linea.calcularSubtotal());
+        assertThrows(UnsupportedOperationException.class, () -> linea.getOpcionIds().clear());
+        assertThrows(IllegalArgumentException.class, () -> linea.conIdPersistido(99));
+        assertThrows(IllegalArgumentException.class, () -> lineaPedido.reconstruirPersistida(1, 0, List.of(),
+                "Producto", "Comidas", "", BigDecimal.ONE, 1));
+        assertThrows(IllegalArgumentException.class, () -> lineaPedido.reconstruirPersistida(1, 2, List.of(3L, 3L),
+                "Producto", "Comidas", "", BigDecimal.ONE, 1));
+    }
+
+    @Test
+    void cambiosEnIdsDelCatalogoNoModificanLasReferenciasDeLaLinea() {
+        Producto producto = new Producto(6, "Producto", BigDecimal.TEN, new Categoria(1, "Comidas", true), true);
+        OpcionProducto queso = new OpcionProducto(5, "Queso", TipoOpcion.EXTRA, BigDecimal.ONE, true);
+        producto.setOpciones(List.of(queso));
+        lineaPedido original = new lineaPedido(0, producto, List.of(queso), 1);
+        producto.setId(99);
+        queso.setId(98);
+        lineaPedido persistida = original.conIdPersistido(4_000_000_001L);
+        assertEquals(0, original.getId());
+        assertEquals(6, persistida.getProductoId());
+        assertEquals(List.of(5L), persistida.getOpcionIds());
+        assertEquals(new BigDecimal("11"), persistida.getPrecioUnitario());
+    }
+    @Test
     void recuperaElDesgloseHistoricoSinUnProductoDelCatalogoActual() {
         long id = (long) Integer.MAX_VALUE + 200;
         lineaPedido historica = lineaPedido.reconstruirHistorica(id, "Nombre original",

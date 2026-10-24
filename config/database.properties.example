@@ -1,0 +1,18 @@
+# Plantilla de conexion a MySQL en Aiven. Copeala a config/database.local.properties
+# y rellena user y password con tus credenciales de Aiven (las de tu conexion en Workbench).
+# El archivo *.local.properties esta ignorado por Git; no compartas tus credenciales.
+#
+# Ejecuta la aplicacion y las pruebas desde la raiz del proyecto para que
+# file:config/aiven-truststore.p12 resuelva correctamente.
+
+url=jdbc:mysql://restaurante-mysql-restaurante1234.a.aivencloud.com:10952/restaurante
+user=TU_USUARIO_AIVEN
+password=TU_CONTRASENA
+
+# TLS: verifica el certificado del servidor contra la CA de Aiven.
+# El truststore se genera una vez con:
+# keytool -importcert -alias aiven-ca -file config/aiven-ca.pem -keystore config/aiven-truststore.p12 -storetype PKCS12 -storepass changeit
+sslMode=VERIFY_IDENTITY
+trustCertificateKeyStoreUrl=file:config/aiven-truststore.p12
+trustCertificateKeyStoreType=PKCS12
+trustCertificateKeyStorePassword=changeit
