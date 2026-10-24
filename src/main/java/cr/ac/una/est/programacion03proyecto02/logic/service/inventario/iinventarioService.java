@@ -11,6 +11,10 @@ import java.util.Map;
 public interface iinventarioService {
 
     boolean hayStockSuficiente(
+            Map<Long, Double> cantidades
+    ) throws SQLException;
+
+    boolean hayStockSuficiente(
             Map<Long, Double> cantidades,
             Connection conexion
     ) throws SQLException;
