@@ -1,5 +1,5 @@
 package cr.ac.una.est.programacion03proyecto02.persistence.dao.inventario;
-/*
+
 import cr.ac.una.est.programacion03proyecto02.logic.model.inventario.ingrediente;
 
 import java.sql.Connection;
@@ -14,13 +14,16 @@ public class ingredienteDAO {
         return null;
     }
 
-    public int guardar(ingrediente ingrediente, Connection conexion) throws SQLException {
+    public long guardar(
+            ingrediente ingrediente,
+            Connection conexion
+    ) throws SQLException {
         //...
-        return 0;
+        return 0L;
     }
 
     public boolean validar(
-            Map<Integer, Double> cantidades,
+            Map<Long, Double> cantidades,
             Connection conexion
     ) throws SQLException {
         //...
@@ -28,7 +31,7 @@ public class ingredienteDAO {
     }
 
     public void aplicarVariacion(
-            int ingredienteId,
+            long ingredienteId,
             double variacion,
             Connection conexion
     ) throws SQLException {
@@ -43,4 +46,3 @@ public class ingredienteDAO {
         }
     }
 }
-*/
