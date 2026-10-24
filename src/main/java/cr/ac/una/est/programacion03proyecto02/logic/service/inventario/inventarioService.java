@@ -40,10 +40,22 @@ public class inventarioService implements iinventarioService {
 
     @Override
     public boolean hayStockSuficiente(
+            Map<Long, Double> cantidades
+    ) throws SQLException {
+        try (Connection conexion = conexionDB.getConnection()) {
+            return hayStockSuficiente(cantidades, conexion);
+        }
+    }
+
+    @Override
+    public boolean hayStockSuficiente(
             Map<Long, Double> cantidades,
             Connection conexion
     ) throws SQLException {
-        Objects.requireNonNull(conexion, "La conexión no puede ser null.");
+        Objects.requireNonNull(
+                conexion,
+                "La conexión no puede ser null."
+        );
 
         Map<Long, Double> cantidadesValidadas =
                 validarCantidades(cantidades, true);
@@ -139,7 +151,9 @@ public class inventarioService implements iinventarioService {
     }
 
     @Override
-    public void guardarIngrediente(ingrediente ingrediente) throws SQLException {
+    public void guardarIngrediente(
+            ingrediente ingrediente
+    ) throws SQLException {
         Objects.requireNonNull(
                 ingrediente,
                 "El ingrediente no puede ser null."
@@ -241,7 +255,11 @@ public class inventarioService implements iinventarioService {
         }
 
         validarUsuario(usuario);
-        Objects.requireNonNull(conexion, "La conexión no puede ser null.");
+
+        Objects.requireNonNull(
+                conexion,
+                "La conexión no puede ser null."
+        );
     }
 
     private void validarUsuario(String usuario) {
