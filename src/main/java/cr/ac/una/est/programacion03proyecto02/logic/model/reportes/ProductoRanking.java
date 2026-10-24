@@ -4,9 +4,9 @@ package cr.ac.una.est.programacion03proyecto02.logic.model.reportes;
 public class ProductoRanking {
     private final long productoId;
     private final String nombreProducto;
-    private final int unidades;
+    private final long unidades;
 
-    public ProductoRanking(long productoId, String nombreProducto, int unidades) {
+    public ProductoRanking(long productoId, String nombreProducto, long unidades) {
         if (productoId <= 0) {
             throw new IllegalArgumentException("El id del producto debe ser positivo.");
         }
@@ -29,7 +29,7 @@ public class ProductoRanking {
         return nombreProducto;
     }
 
-    public int getUnidades() {
+    public long getUnidades() {
         return unidades;
     }
 }

@@ -46,4 +46,11 @@ class SesionActualTest {
     void exigirRolSinSesionEsUnErrorDeEstado() {
         assertThrows(IllegalStateException.class, () -> sesion.exigirRol(Rol.ADMIN));
     }
+
+    @Test
+    void rechazaUsuariosInactivosAunqueTenganUnRolValido() {
+        assertThrows(SecurityException.class,
+                () -> sesion.iniciar(new Usuario(1, "inactivo", HASH, Rol.ADMIN, false)));
+        assertNull(sesion.getUsuario());
+    }
 }

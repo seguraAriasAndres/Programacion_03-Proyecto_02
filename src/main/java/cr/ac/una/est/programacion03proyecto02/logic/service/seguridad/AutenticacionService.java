@@ -22,7 +22,15 @@ public class AutenticacionService implements IAutenticacionService {
     private static final int TAMANO_RESUMEN = 32;
     private static final SecureRandom ALEATORIO = new SecureRandom();
 
-    private final UsuarioDAO usuarios = new UsuarioDAO();
+    private final UsuarioDAO usuarios;
+
+    public AutenticacionService() {
+        this(new UsuarioDAO());
+    }
+
+    public AutenticacionService(UsuarioDAO usuarios) {
+        this.usuarios = Objects.requireNonNull(usuarios, "Falta el DAO de usuarios.");
+    }
 
     @Override
     public Usuario autenticar(String nombre, String clave) throws SQLException {
@@ -47,7 +55,7 @@ public class AutenticacionService implements IAutenticacionService {
         if (clave == null || hash == null) {
             return false;
         }
-        String[] partes = hash.split(":");
+        String[] partes = hash.split(":", -1);
         if (partes.length != 2) {
             return false;
         }
