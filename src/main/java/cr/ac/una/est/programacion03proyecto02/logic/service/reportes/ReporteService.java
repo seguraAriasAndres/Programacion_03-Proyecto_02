@@ -47,7 +47,7 @@ public class ReporteService {
                         linea.calcularSubtotal(), BigDecimal::add);
             }
         }
-        return porCategoria;
+        return java.util.Collections.unmodifiableMap(porCategoria);
     }
 
     /**
@@ -57,7 +57,7 @@ public class ReporteService {
      */
     public List<ProductoRanking> ranking(LocalDateTime desde, LocalDateTime hasta) throws SQLException {
         validarRango(desde, hasta);
-        Map<Long, Integer> unidades = ventas.rankingProductos(desde, hasta);
+        Map<Long, Long> unidades = ventas.rankingProductos(desde, hasta);
         Map<Long, String> nombres = new HashMap<>();
         for (Pedido pedido : ventas.pedidosPagadosEntre(desde, hasta)) {
             for (lineaPedido linea : pedido.getLineas()) {
@@ -74,20 +74,21 @@ public class ReporteService {
                 ranking.add(new ProductoRanking(productoId,
                         nombres.getOrDefault(productoId, "Producto " + productoId),
                         unidadesVendidas)));
-        ranking.sort(Comparator.comparingInt(ProductoRanking::getUnidades).reversed());
-        return ranking;
+        ranking.sort(Comparator.comparingLong(ProductoRanking::getUnidades).reversed()
+                .thenComparingLong(ProductoRanking::getProductoId));
+        return List.copyOf(ranking);
     }
 
     public List<Pedido> historial(LocalDateTime desde, LocalDateTime hasta) throws SQLException {
         validarRango(desde, hasta);
-        return ventas.pedidosPagadosEntre(desde, hasta);
+        return List.copyOf(ventas.pedidosPagadosEntre(desde, hasta));
     }
 
     private void validarRango(LocalDateTime desde, LocalDateTime hasta) {
         Objects.requireNonNull(desde, "Falta la fecha inicial.");
         Objects.requireNonNull(hasta, "Falta la fecha final.");
-        if (desde.isAfter(hasta)) {
-            throw new IllegalArgumentException("La fecha inicial no puede ser posterior a la final.");
+        if (!desde.isBefore(hasta)) {
+            throw new IllegalArgumentException("La fecha inicial debe ser anterior a la final; hasta es excluyente.");
         }
     }
 }

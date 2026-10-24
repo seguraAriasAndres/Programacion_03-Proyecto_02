@@ -5,5 +5,6 @@ module cr.ac.una.est.programacion03proyecto {
     requires mysql.connector.j;
 
     opens cr.ac.una.est.programacion03proyecto02.controller.demo to javafx.fxml;
+    opens cr.ac.una.est.programacion03proyecto02.controller.pedidos to javafx.fxml;
     exports cr.ac.una.est.programacion03proyecto02.app;
 }
