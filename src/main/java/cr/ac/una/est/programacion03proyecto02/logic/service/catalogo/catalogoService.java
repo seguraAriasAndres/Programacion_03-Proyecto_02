@@ -37,6 +37,26 @@ public class catalogoService implements ICatalogoService {
     }
 
     @Override
+    public List<Categoria> listarCategoriasAdministracion()
+            throws SQLException {
+        try (Connection conexion = conexionDB.getConnection()) {
+            return List.copyOf(categorias.listarTodas(conexion));
+        }
+    }
+    
+    @Override
+    public void guardarCategoria(Categoria categoria) throws SQLException {
+        Objects.requireNonNull(categoria, "La categoría no puede ser null.");
+        validarCategoria(categoria);
+    
+        long id = ejecutarTransaccion(
+                conexion -> categorias.guardar(categoria, conexion)
+        );
+    
+        categoria.setId(id);
+    }
+
+    @Override
     public Producto obtenerProducto(
             long productoId,
             Connection conexion
@@ -117,5 +137,51 @@ public class catalogoService implements ICatalogoService {
         producto.setDisponible(
                 inventario.hayStockSuficiente(cantidades, conexion)
         );
+    }
+
+    private void validarCategoria(Categoria categoria) {
+        if (categoria.getId() < 0) {
+            throw new IllegalArgumentException(
+                    "El ID de la categoría no puede ser negativo."
+            );
+        }
+    
+        String nombre = categoria.getNombre();
+    
+        if (nombre == null || nombre.isBlank() || nombre.trim().length() > 100) {
+            throw new IllegalArgumentException(
+                    "El nombre de la categoría es obligatorio y admite "
+                            + "hasta 100 caracteres."
+            );
+        }
+    
+        categoria.setNombre(nombre.trim());
+    }
+    
+    private <T> T ejecutarTransaccion(
+            operacionConConexion<T> operacion
+    ) throws SQLException {
+        try (Connection conexion = conexionDB.getConnection()) {
+            conexion.setAutoCommit(false);
+    
+            try {
+                T resultado = operacion.ejecutar(conexion);
+                conexion.commit();
+                return resultado;
+            } catch (SQLException | RuntimeException error) {
+                try {
+                    conexion.rollback();
+                } catch (SQLException errorRollback) {
+                    error.addSuppressed(errorRollback);
+                }
+    
+                throw error;
+            }
+        }
+    }
+    
+    @FunctionalInterface
+    private interface operacionConConexion<T> {
+        T ejecutar(Connection conexion) throws SQLException;
     }
 }
