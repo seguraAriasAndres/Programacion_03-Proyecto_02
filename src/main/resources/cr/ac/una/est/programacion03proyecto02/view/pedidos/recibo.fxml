@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<!-- fx:id enlaza controles con campos @FXML; onAction enlaza eventos con metodos. -->
+
+<VBox prefHeight="500" prefWidth="800" spacing="12" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cr.ac.una.est.programacion03proyecto02.controller.pedidos.ReciboController">
+    <padding><Insets bottom="20" left="20" right="20" top="20" /></padding>
+    <Label style="-fx-font-size: 24px; -fx-font-weight: bold;" text="Recibo de pago" />
+    <GridPane hgap="16" vgap="8">
+        <Label text="Recibo:" GridPane.rowIndex="0" />
+        <Label fx:id="lblIdRecibo" text="—" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+        <Label text="Pedido:" GridPane.columnIndex="2" GridPane.rowIndex="0" />
+        <Label fx:id="lblPedido" text="—" GridPane.columnIndex="3" GridPane.rowIndex="0" />
+        <Label text="Fecha de pago:" GridPane.rowIndex="1" />
+        <Label fx:id="lblFecha" text="—" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+        <Label fx:id="lblMetodoPago" text="—" GridPane.columnIndex="3" GridPane.rowIndex="1" />
+        <Label text="Método de pago:" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+        <Label text="Cobrado por:" GridPane.rowIndex="2" />
+        <Label fx:id="lblUsuario" text="—" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+      <columnConstraints>
+         <ColumnConstraints />
+         <ColumnConstraints />
+         <ColumnConstraints />
+         <ColumnConstraints />
+      </columnConstraints>
+      <rowConstraints>
+         <RowConstraints />
+         <RowConstraints />
+         <RowConstraints />
+      </rowConstraints>
+    </GridPane>
+    <TableView fx:id="tblDesglose" editable="false" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="colProducto" prefWidth="180" text="Producto" />
+            <TableColumn fx:id="colOpciones" prefWidth="220" text="Opciones / extras" />
+            <TableColumn fx:id="colCantidad" prefWidth="80" text="Cantidad" />
+            <TableColumn fx:id="colPrecio" prefWidth="120" text="Precio unitario" />
+            <TableColumn fx:id="colSubtotal" prefWidth="120" text="Subtotal" />
+        </columns>
+    </TableView>
+    <HBox alignment="CENTER_RIGHT" spacing="10">
+        <Label style="-fx-font-size: 18px; -fx-font-weight: bold;" text="Total:" />
+        <Label fx:id="lblTotal" style="-fx-font-size: 18px;" text="—" />
+    </HBox>
+    <Button onAction="#onCerrar" text="Cerrar recibo" />
+</VBox>
