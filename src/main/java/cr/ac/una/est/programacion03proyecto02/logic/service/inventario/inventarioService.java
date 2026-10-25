@@ -5,6 +5,8 @@ import cr.ac.una.est.programacion03proyecto02.logic.model.inventario.movimientoS
 import cr.ac.una.est.programacion03proyecto02.persistence.connection.ConexionDB;
 import cr.ac.una.est.programacion03proyecto02.persistence.dao.inventario.ingredienteDAO;
 import cr.ac.una.est.programacion03proyecto02.persistence.dao.inventario.movimientoStockDAO;
+import cr.ac.una.est.programacion03proyecto02.logic.model.inventario.merma;
+import cr.ac.una.est.programacion03proyecto02.logic.model.inventario.reabastecimiento;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -255,22 +257,28 @@ public class inventarioService implements iinventarioService {
     }
 
     private void validarDatosPedido(
-            long pedidoId,
-            String usuario,
-            Connection conexion
-    ) {
+        long pedidoId,
+        String usuario,
+        Connection conexion
+    ) throws SQLException {
         if (pedidoId <= 0) {
             throw new IllegalArgumentException(
                     "El ID del pedido debe ser positivo."
             );
         }
-
+    
         validarUsuario(usuario);
-
+    
         Objects.requireNonNull(
                 conexion,
                 "La conexión no puede ser null."
         );
+    
+        if (conexion.getAutoCommit()) {
+            throw new SQLException(
+                    "La operación del pedido requiere una transacción abierta."
+            );
+        }
     }
 
     private void validarUsuario(String usuario) {
