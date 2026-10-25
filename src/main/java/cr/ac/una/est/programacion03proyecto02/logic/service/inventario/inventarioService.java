@@ -194,7 +194,15 @@ public class inventarioService implements iinventarioService {
                 movimiento,
                 "El movimiento no puede ser null."
         );
-
+        
+        if (!(movimiento instanceof reabastecimiento)
+                && !(movimiento instanceof merma)) {
+            throw new IllegalArgumentException(
+                    "Los consumos y devoluciones deben registrarse "
+                            + "mediante las operaciones del pedido."
+            );
+        }
+        
         long ingredienteId = movimiento.getIngrediente().getId();
 
         if (ingredienteId <= 0) {
