@@ -7,8 +7,14 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.time.LocalDateTime;
 
 public interface iinventarioService {
+
+    List<movimientoStock> listarMovimientos(
+        LocalDateTime desde,
+        LocalDateTime hasta
+    ) throws SQLException;
 
     boolean hayStockSuficiente(
             Map<Long, Double> cantidades
