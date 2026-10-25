@@ -30,4 +30,4 @@ public interface ICatalogoService {
     List<Categoria> listarCategoriasAdministracion() throws SQLException;
 
     void guardarCategoria(Categoria categoria) throws SQLException;
-}
+
