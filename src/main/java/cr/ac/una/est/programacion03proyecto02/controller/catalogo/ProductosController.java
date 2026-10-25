@@ -3,7 +3,7 @@ package cr.ac.una.est.programacion03proyecto02.controller.catalogo;
 import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.Categoria;
 import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.Producto;
 import cr.ac.una.est.programacion03proyecto02.logic.model.seguridad.enums.Rol;
-import cr.ac.una.est.programacion03proyecto02.logic.service.catalogo.catalogoService;
+import cr.ac.una.est.programacion03proyecto02.logic.service.catalogo.CatalogoService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.SesionActual;
 import cr.ac.una.est.programacion03proyecto02.persistence.dao.pedidos.ProductoDAO;
 import cr.ac.una.est.programacion03proyecto02.view.navigation.NavegadorVistas;
@@ -21,7 +21,7 @@ import java.util.Objects;
 
 //controlador para listar, filtrar, editar y desactivar productos
 public class ProductosController {
-    private final catalogoService catalogo;
+    private final CatalogoService catalogo;
     private final SesionActual sesion;
     private final NavegadorVistas navegador;
     private final ProductoDAO productoDAO;
@@ -35,7 +35,7 @@ public class ProductosController {
     @FXML private TableColumn<Producto, Boolean> colProductoDisponible;
     @FXML private Label lblMensaje;
 
-    public ProductosController(catalogoService catalogo, SesionActual sesion, NavegadorVistas navegador) {
+    public ProductosController(CatalogoService catalogo, SesionActual sesion, NavegadorVistas navegador) {
         this.catalogo = Objects.requireNonNull(catalogo);
         this.sesion = Objects.requireNonNull(sesion);
         this.navegador = Objects.requireNonNull(navegador);

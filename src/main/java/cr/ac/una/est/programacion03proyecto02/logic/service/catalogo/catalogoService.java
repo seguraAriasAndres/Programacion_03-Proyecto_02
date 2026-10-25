@@ -17,19 +17,14 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.TreeMap;
 
-public class catalogoService implements ICatalogoService {
+public class CatalogoService implements ICatalogoService {
 
     private final ConexionDB conexionDB;
     private final productoDAO productos;
     private final categoriaDAO categorias;
     private final iinventarioService inventario;
 
-    public catalogoService(
-            ConexionDB conexionDB,
-            productoDAO productos,
-            categoriaDAO categorias,
-            iinventarioService inventario
-    ) {
+    public CatalogoService(ConexionDB conexionDB, productoDAO productos, categoriaDAO categorias, iinventarioService inventario) {
         this.conexionDB = Objects.requireNonNull(conexionDB);
         this.productos = Objects.requireNonNull(productos);
         this.categorias = Objects.requireNonNull(categorias);

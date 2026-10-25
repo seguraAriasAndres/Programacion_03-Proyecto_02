@@ -5,7 +5,7 @@ import cr.ac.una.est.programacion03proyecto02.controller.catalogo.ProductoEditor
 import cr.ac.una.est.programacion03proyecto02.controller.catalogo.ProductosController;
 import cr.ac.una.est.programacion03proyecto02.controller.pedidos.ReciboController;
 import cr.ac.una.est.programacion03proyecto02.logic.model.pedidos.Recibo;
-import cr.ac.una.est.programacion03proyecto02.logic.service.catalogo.catalogoService;
+import cr.ac.una.est.programacion03proyecto02.logic.service.catalogo.CatalogoService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.inventario.iinventarioService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.SesionActual;
 import cr.ac.una.est.programacion03proyecto02.persistence.connection.ConexionDB;
@@ -26,13 +26,13 @@ public class NavegadorVistas {
     private static final String CLAVE_PEDIDO_ID = "pedidoId";
 
     private Stage ventana;
-    private catalogoService catalogo;
+    private CatalogoService catalogo;
     private iinventarioService inventario;
     private SesionActual sesion;
     private ConexionDB conexionDB;
 
     //configura la ventana y las dependencias necesarias para crear controladores
-    public void configurar(Stage ventana, catalogoService catalogo, iinventarioService inventario, SesionActual sesion, ConexionDB conexionDB) {
+    public void configurar(Stage ventana, CatalogoService catalogo, iinventarioService inventario, SesionActual sesion, ConexionDB conexionDB) {
         this.ventana = Objects.requireNonNull(ventana);
         this.catalogo = Objects.requireNonNull(catalogo);
         this.inventario = Objects.requireNonNull(inventario);

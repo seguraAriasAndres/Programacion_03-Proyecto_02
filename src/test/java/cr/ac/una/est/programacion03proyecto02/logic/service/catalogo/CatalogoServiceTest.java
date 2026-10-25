@@ -32,7 +32,7 @@ class CatalogoServiceTest {
             }
         };
 
-        catalogoService servicio = crearServicio(
+        CatalogoService servicio = crearServicio(
                 conexionDB,
                 new categoriaDAO()
         );
@@ -72,7 +72,7 @@ class CatalogoServiceTest {
             }
         };
 
-        catalogoService servicio = crearServicio(conexionDB, categorias);
+        CatalogoService servicio = crearServicio(conexionDB, categorias);
         Categoria categoria = new Categoria(0L, " Bebidas ", true);
 
         servicio.guardarCategoria(categoria);
@@ -105,7 +105,7 @@ class CatalogoServiceTest {
             }
         };
 
-        catalogoService servicio = crearServicio(conexionDB, categorias);
+        CatalogoService servicio = crearServicio(conexionDB, categorias);
         Categoria categoria = new Categoria(0L, "Bebidas", true);
 
         assertThrows(
@@ -118,7 +118,7 @@ class CatalogoServiceTest {
         assertTrue(revertida.get());
     }
 
-    private catalogoService crearServicio(
+    private CatalogoService crearServicio(
             ConexionDB conexionDB,
             categoriaDAO categorias
     ) {
@@ -128,7 +128,7 @@ class CatalogoServiceTest {
                 new movimientoStockDAO()
         );
 
-        return new catalogoService(
+        return new CatalogoService(
                 conexionDB,
                 new productoDAO(),
                 categorias,

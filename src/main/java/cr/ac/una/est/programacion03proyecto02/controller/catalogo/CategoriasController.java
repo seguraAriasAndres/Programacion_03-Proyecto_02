@@ -2,7 +2,7 @@ package cr.ac.una.est.programacion03proyecto02.controller.catalogo;
 
 import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.Categoria;
 import cr.ac.una.est.programacion03proyecto02.logic.model.seguridad.enums.Rol;
-import cr.ac.una.est.programacion03proyecto02.logic.service.catalogo.catalogoService;
+import cr.ac.una.est.programacion03proyecto02.logic.service.catalogo.CatalogoService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.SesionActual;
 import cr.ac.una.est.programacion03proyecto02.view.navigation.NavegadorVistas;
 import javafx.beans.property.ReadOnlyObjectWrapper;
@@ -19,7 +19,7 @@ import java.util.Objects;
 
 //controlador para consultar, crear y guardar categorías
 public class CategoriasController {
-    private final catalogoService catalogo;
+    private final CatalogoService catalogo;
     private final SesionActual sesion;
     private final NavegadorVistas navegador;
 
@@ -33,7 +33,7 @@ public class CategoriasController {
     @FXML private CheckBox chkActiva;
     @FXML private Label lblMensaje;
 
-    public CategoriasController(catalogoService catalogo, SesionActual sesion, NavegadorVistas navegador) {
+    public CategoriasController(CatalogoService catalogo, SesionActual sesion, NavegadorVistas navegador) {
         this.catalogo = Objects.requireNonNull(catalogo);
         this.sesion = Objects.requireNonNull(sesion);
         this.navegador = Objects.requireNonNull(navegador);
