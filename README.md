@@ -222,6 +222,19 @@ por un algoritmo específico para contraseñas, como PBKDF2 o Argon2. No se camb
 las contraseñas ni el formato de los hashes actuales. El parser rechaza también
 separadores sobrantes en hashes corruptos.
 
+#Orden de creación de tablas:
+
+1. 00_crear_base.sql
+2. 01_seguridad.sql
+3. El script del módulo de pedidos que crea la tabla pedido
+4. 02_inventario.sql
+5. 03_catalogo.sql
+
+02_inventario.sql requiere que pedido ya exista por su llave foránea.
+03_catalogo.sql requiere que ingrediente ya exista para crear receta_item.
+Los scripts usan CREATE TABLE IF NOT EXISTS: sirven para crear tablas faltantes,
+pero no actualizan ni corrigen tablas que ya existen.
+
 ## Compilación
 
 El proyecto usa Maven Wrapper, Java release 21 y JavaFX 21.0.6. Configurar `JAVA_HOME` hacia un JDK compatible y ejecutar `mvnw.cmd clean verify` en Windows o `./mvnw clean verify` en otros sistemas. La aplicación se inicia con `mvnw.cmd javafx:run`.
