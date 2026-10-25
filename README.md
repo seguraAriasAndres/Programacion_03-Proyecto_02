@@ -15,15 +15,20 @@ src/main/
         catalogo/                # Producto, Categoria, OpcionProducto y enums
         inventario/              # Ingredientes, recetas y movimientos
         pedidos/                 # Pedido, lineaPedido, Pago, Recibo y enums
+        seguridad/               # Usuario y Rol
+        reportes/                # ProductoRanking
       service/
         inventario/              # Servicio y contrato de inventario
         pedidos/                 # CobroService
+        seguridad/               # Autenticación y sesión
+        reportes/                # Agregación de ventas
       repository/
         pedidos/                 # PedidoRepository: caché de pedidos activos
     persistence/
       dao/
         inventario/              # DAO aún comentados
         pedidos/                 # PedidoDAO, LineaPedidoDAO y ReciboDAO
+        seguridad/               # UsuarioDAO
     controller/
       seguridad/                 # Login, menú y reportes futuros
       catalogo/                  # Categorías y productos futuros
@@ -47,8 +52,8 @@ classpath del programa. Los FXML permanecen separados del código fuente Java.
 
 Los archivos `.gitkeep` conservan en Git las carpetas de controladores y vistas
 que aún no tienen implementación. No son clases ni funcionalidades terminadas.
-No se crearon los controladores de negocio: la demo sigue siendo la pantalla que
-abre la aplicación.
+Los controladores de negocio siguen pendientes; `ReciboController` tiene solo un
+esqueleto. La demo sigue siendo la pantalla que abre la aplicación.
 
 Los nombres de clases existentes se conservan, incluidos `lineaPedido` y los
 nombres en minúscula de inventario. El paquete de catálogo se unificó como
@@ -90,7 +95,7 @@ Las rutas de esta tabla son relativas al paquete base de Java:
 
 Los paquetes pendientes se crean al incorporar sus clases. `CobroService` vive en
 `logic.service.pedidos` y `PedidoRepository` en `logic.repository.pedidos`.
-`PedidoService` e `IConsultaVentas` siguen pendientes.
+`IConsultaVentas` ya está definido; su implementación en `PedidoService` sigue pendiente.
 
 Los controladores usan servicios y modelos. Los servicios coordinan reglas de
 negocio y transacciones; los DAO ejecutan SQL. Un controlador no abre conexiones,
@@ -200,6 +205,36 @@ devuelven copias para que una edición externa no cambie el estado almacenado.
 según sus estados. La caché es local a cada ejecución; los cambios de otros equipos
 se obtienen al recargar y las operaciones críticas vuelven a consultar MySQL.
 
+## Revisión del backend — 24 de octubre de 2026
+
+El contrato `IConsultaVentas.rankingProductos` y `ProductoRanking.unidades` usan
+`long`/`Long`, igual que `PedidoDAO.ranking`, para conservar sumas mayores que el
+límite de `int`. Los rangos de reportes exigen `desde < hasta`: desde incluido y
+hasta excluido. El ranking desempata por ID y devuelve colecciones protegidas.
+
+`SesionActual` rechaza usuarios inactivos. `AutenticacionService` y `UsuarioDAO`
+permiten inyectar sus dependencias conservando los constructores sin argumentos.
+Esto permite probar el login completo con tablas temporales; las pruebas ya no
+borran filas `zztest_*` de las tablas compartidas de Aiven.
+
+Se conserva SHA-256 con sal por decisión del equipo. Sigue pendiente sustituirlo
+por un algoritmo específico para contraseñas, como PBKDF2 o Argon2. No se cambiaron
+las contraseñas ni el formato de los hashes actuales. El parser rechaza también
+separadores sobrantes en hashes corruptos.
+
+#Orden de creación de tablas:
+
+1. 00_crear_base.sql
+2. 01_seguridad.sql
+3. El script del módulo de pedidos que crea la tabla pedido
+4. 02_inventario.sql
+5. 03_catalogo.sql
+
+02_inventario.sql requiere que pedido ya exista por su llave foránea.
+03_catalogo.sql requiere que ingrediente ya exista para crear receta_item.
+Los scripts usan CREATE TABLE IF NOT EXISTS: sirven para crear tablas faltantes,
+pero no actualizan ni corrigen tablas que ya existen.
+
 ## Compilación
 
 El proyecto usa Maven Wrapper, Java release 21 y JavaFX 21.0.6. Configurar `JAVA_HOME` hacia un JDK compatible y ejecutar `mvnw.cmd clean verify` en Windows o `./mvnw clean verify` en otros sistemas. La aplicación se inicia con `mvnw.cmd javafx:run`.
@@ -216,7 +251,7 @@ DAO estén comentados y su servicio siga importándolos, utiliza el perfil de mo
 ```
 
 Este perfil compila y prueba el dominio (`model`), los DAO, la conexión, el
-repositorio y el servicio de cobro de pedidos, sin compilar
+repositorio, cobro, seguridad y reportes, sin compilar
 el servicio de inventario pendiente ni la aplicación JavaFX. Por defecto no requiere
 MySQL; las pruebas JDBC se activan con `-Dpruebas.mysql=true`. Usa el `pom.xml` principal;
 no necesita archivos de configuración temporales. Si no encuentra pruebas, falla

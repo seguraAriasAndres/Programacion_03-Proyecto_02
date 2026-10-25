@@ -5,23 +5,29 @@ import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.OpcionProduct
 import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.Producto;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
 
-//define las operaciones disponibles para consultar el catálogo
 public interface ICatalogoService {
 
-    //obtiene un producto usando la conexión recibida
-    Producto obtenerProducto(int id, Connection c);
+    // Consulta para el catálogo que se muestra al cliente.
+    Producto obtenerProducto(
+            long productoId,
+            Connection conexion
+    ) throws SQLException;
 
-    //obtiene las categorías activas del catálogo
-    List<Categoria> listarCategorias();
+    List<Categoria> listarCategorias() throws SQLException;
 
-    //obtiene los productos activos de una categoría
-    List<Producto> listarPorCategoria(int id);
+    List<Producto> listarPorCategoria(long categoriaId) throws SQLException;
 
-    //obtiene los productos activos de todas las categorías activas
-    List<Producto> listarProductosActivos();
+    List<Producto> listarProductosActivos() throws SQLException;
 
-    //obtiene las opciones asociadas a un producto
-    List<OpcionProducto> listarOpcionesDeProducto(int id);
-}
+    List<OpcionProducto> listarOpcionesDeProducto(
+            long productoId
+    ) throws SQLException;
+
+    // Operaciones administrativas de categorías.
+    List<Categoria> listarCategoriasAdministracion() throws SQLException;
+
+    void guardarCategoria(Categoria categoria) throws SQLException;
+

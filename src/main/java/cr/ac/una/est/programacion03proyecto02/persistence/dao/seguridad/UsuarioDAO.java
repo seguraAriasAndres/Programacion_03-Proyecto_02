@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 
 /**
@@ -26,9 +27,17 @@ public class UsuarioDAO {
             VALUES (?, ?, ?)
             """;
 
-    private final ConexionDB bd = new ConexionDB();
+    private final ConexionDB bd;
 
-    /** Devuelve null si el nombre no existe o si hay mas de una fila (deberia ser UNIQUE). */
+    public UsuarioDAO() {
+        this(new ConexionDB());
+    }
+
+    public UsuarioDAO(ConexionDB bd) {
+        this.bd = Objects.requireNonNull(bd, "Falta el proveedor de conexiones.");
+    }
+
+    /** Devuelve null si el nombre no existe; rechaza filas corruptas o nombres duplicados. */
     public Usuario buscar(String nombre) throws SQLException {
         validarNombre(nombre);
         try (Connection conexion = bd.getConnection();
@@ -38,12 +47,21 @@ public class UsuarioDAO {
                 if (!resultado.next()) {
                     return null;
                 }
-                Usuario usuario = new Usuario(
-                        resultado.getLong("id"),
+                Usuario usuario;
+                try {
+                    long id = resultado.getLong("id");
+                    if (id <= 0) {
+                        throw new IllegalArgumentException("El usuario guardado requiere un ID positivo.");
+                    }
+                    usuario = new Usuario(
+                        id,
                         resultado.getString("nombre_usuario"),
                         resultado.getString("hash"),
                         leerRol(resultado.getString("nombre_usuario"), resultado.getString("rol")),
                         resultado.getBoolean("activo"));
+                } catch (IllegalArgumentException | NullPointerException error) {
+                    throw new SQLException("El usuario guardado contiene datos invalidos.", error);
+                }
                 if (resultado.next()) {
                     throw new SQLException("Hay mas de un usuario llamado "
                             + usuario.getNombreUsuario() + "; falta UNIQUE(nombre_usuario).");
@@ -60,7 +78,7 @@ public class UsuarioDAO {
              PreparedStatement sentencia = conexion.prepareStatement(REGISTRAR_INTENTO)) {
             sentencia.setString(1, nombre);
             sentencia.setBoolean(2, exitoso);
-            sentencia.setObject(3, LocalDateTime.now());
+            sentencia.setObject(3, LocalDateTime.now().truncatedTo(ChronoUnit.MICROS));
             if (sentencia.executeUpdate() != 1) {
                 throw new SQLException("No se registro el intento de login.");
             }

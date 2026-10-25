@@ -2,65 +2,75 @@ package cr.ac.una.est.programacion03proyecto02.logic.service.seguridad;
 
 import cr.ac.una.est.programacion03proyecto02.logic.model.seguridad.Usuario;
 import cr.ac.una.est.programacion03proyecto02.logic.model.seguridad.enums.Rol;
+import cr.ac.una.est.programacion03proyecto02.persistence.connection.ConexionDB;
+import cr.ac.una.est.programacion03proyecto02.persistence.dao.seguridad.UsuarioDAO;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * MySQL real de Aiven; el login completo abre sus propias conexiones porque
- * UsuarioDAO las gestiona (diseno del UML), asi que las pruebas escriben en las
- * tablas reales unicamente filas zztest_*, borradas antes y despues de cada test.
+ * Login completo en tablas TEMPORARY de una sesion. El proveedor inyectado permite
+ * compartirlas entre operaciones del DAO. No inserta ni elimina filas permanentes.
  */
 @EnabledIfSystemProperty(named = "pruebas.mysql", matches = "true")
 class AutenticacionServiceMySQLTest {
 
     private Connection conexion;
-    private final AutenticacionService servicio = new AutenticacionService();
+    private AutenticacionService servicio;
+    private UsuarioDAO dao;
 
     @BeforeEach
-    void abrirSesionYLimpiar() throws Exception {
-        Properties config = new Properties();
-        try (var archivo = Files.newInputStream(Path.of("config/database.local.properties"))) {
-            config.load(archivo);
+    void abrirSesionTemporal() throws Exception {
+        conexion = new ConexionDB().getConnection();
+        try (var sentencia = conexion.createStatement()) {
+            sentencia.executeUpdate("""
+                    CREATE TEMPORARY TABLE usuario (
+                        id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                        nombre_usuario VARCHAR(100) NOT NULL UNIQUE, hash VARCHAR(255) NOT NULL,
+                        rol VARCHAR(20) NOT NULL, activo BOOLEAN NOT NULL DEFAULT TRUE
+                    ) ENGINE=InnoDB AUTO_INCREMENT=3000000000
+                    """);
+            sentencia.executeUpdate("""
+                    CREATE TEMPORARY TABLE auditoria_login (
+                        id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, nombre_usuario VARCHAR(100) NOT NULL,
+                        exitoso BOOLEAN NOT NULL, fecha DATETIME(6) NOT NULL
+                    ) ENGINE=InnoDB
+                    """);
         }
-        String url = (String) config.remove("url");
-        conexion = DriverManager.getConnection(url, config);
-        limpiar();
+        dao = new UsuarioDAO(new ConexionDB() {
+            @Override
+            public Connection getConnection() {
+                // El teardown cierra la sesion; cada operacion del DAO sigue cerrando sus sentencias.
+                return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
+                        new Class<?>[]{Connection.class}, (proxy, metodo, argumentos) -> {
+                            if (metodo.getName().equals("close")) return null;
+                            try {
+                                return metodo.invoke(conexion, argumentos);
+                            } catch (InvocationTargetException error) {
+                                throw error.getCause();
+                            }
+                        });
+            }
+        });
+        servicio = new AutenticacionService(dao);
     }
 
     @AfterEach
-    void cerrarSesionYLimpiar() throws SQLException {
+    void cerrarSesionTemporal() throws SQLException {
         if (conexion != null) {
-            try {
-                limpiar();
-            } finally {
-                conexion.close();
-            }
-        }
-    }
-
-    private void limpiar() throws SQLException {
-        try (PreparedStatement sentencia = conexion.prepareStatement(
-                "DELETE FROM auditoria_login WHERE nombre_usuario LIKE 'zztest_%'")) {
-            sentencia.executeUpdate();
-        }
-        try (PreparedStatement sentencia = conexion.prepareStatement(
-                "DELETE FROM usuario WHERE nombre_usuario LIKE 'zztest_%'")) {
-            sentencia.executeUpdate();
+            conexion.close();
         }
     }
 
@@ -96,7 +106,7 @@ class AutenticacionServiceMySQLTest {
                 () -> assertNotNull(usuario),
                 () -> assertEquals("zztest_admin", usuario.getNombreUsuario()),
                 () -> assertEquals(Rol.ADMIN, usuario.getRol()),
-                () -> assertTrue(usuario.getId() > 0),
+                () -> assertTrue(usuario.getId() > Integer.MAX_VALUE),
                 () -> assertEquals(Boolean.TRUE, ultimoIntento("zztest_admin")));
     }
 
@@ -128,6 +138,16 @@ class AutenticacionServiceMySQLTest {
                 columnas("usuario"));
         assertEquals(List.of("id", "nombre_usuario", "exitoso", "fecha"),
                 columnas("auditoria_login"));
+    }
+
+    @Test
+    void datosCorruptosDelUsuarioSeReportanComoErroresSQL() throws SQLException {
+        crearUsuario("zztest_corrupto", "", Rol.CAJERO, true);
+        assertThrows(SQLException.class, () -> dao.buscar("zztest_corrupto"));
+        try (var sentencia = conexion.createStatement()) {
+            sentencia.executeUpdate("UPDATE usuario SET rol = 'DESCONOCIDO'");
+        }
+        assertThrows(SQLException.class, () -> dao.buscar("zztest_corrupto"));
     }
 
     private List<String> columnas(String tabla) throws SQLException {

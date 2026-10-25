@@ -17,6 +17,7 @@ public class Producto {
     private boolean activo;
     private List<recetaItem> receta;
     private List<OpcionProducto> opciones;
+    private boolean disponible;
 
     public Producto() {
         this.precioBase = BigDecimal.ZERO;
@@ -33,6 +34,14 @@ public class Producto {
         this.activo = activo;
         this.receta = new ArrayList<>();
         this.opciones = new ArrayList<>();
+    }
+    
+    public boolean isDisponible() {
+        return disponible;
+    }
+    
+    public void setDisponible(boolean disponible) {
+        this.disponible = disponible;
     }
 
     public long getId() {

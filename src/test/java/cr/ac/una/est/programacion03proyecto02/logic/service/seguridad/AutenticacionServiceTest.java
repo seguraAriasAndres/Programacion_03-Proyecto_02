@@ -47,4 +47,11 @@ class AutenticacionServiceTest {
     void hashearRechazaClaveNull() {
         assertThrows(NullPointerException.class, () -> AutenticacionService.hashear(null));
     }
+
+    @Test
+    void rechazaSeparadoresSobrantesInclusoConUnHashOriginalValido() {
+        String hash = AutenticacionService.hashear("ClaveSecreta1");
+        assertFalse(AutenticacionService.coincide("ClaveSecreta1", hash + ":"));
+        assertFalse(AutenticacionService.coincide("ClaveSecreta1", hash + "::"));
+    }
 }

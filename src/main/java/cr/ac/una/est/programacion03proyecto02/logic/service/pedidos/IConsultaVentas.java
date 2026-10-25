@@ -16,5 +16,5 @@ public interface IConsultaVentas {
     List<Pedido> pedidosPagadosEntre(LocalDateTime desde, LocalDateTime hasta) throws SQLException;
 
     /** productoId -> unidades vendidas. */
-    Map<Long, Integer> rankingProductos(LocalDateTime desde, LocalDateTime hasta) throws SQLException;
+    Map<Long, Long> rankingProductos(LocalDateTime desde, LocalDateTime hasta) throws SQLException;
 }

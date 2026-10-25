@@ -14,7 +14,11 @@ public class SesionActual {
     private Usuario usuario;
 
     public void iniciar(Usuario usuario) {
-        this.usuario = Objects.requireNonNull(usuario, "No se puede iniciar sesion sin usuario.");
+        Objects.requireNonNull(usuario, "No se puede iniciar sesion sin usuario.");
+        if (!usuario.isActivo()) {
+            throw new SecurityException("No se puede iniciar sesion con un usuario inactivo.");
+        }
+        this.usuario = usuario;
     }
 
     public void cerrar() {
