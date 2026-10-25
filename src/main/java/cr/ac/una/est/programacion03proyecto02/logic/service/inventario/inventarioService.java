@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.time.LocalDateTime;
 
 public class inventarioService implements iinventarioService {
 
@@ -36,6 +37,16 @@ public class inventarioService implements iinventarioService {
                 movimientos,
                 "El DAO de movimientos no puede ser null."
         );
+    }
+
+    @Override
+    public List<movimientoStock> listarMovimientos(
+            LocalDateTime desde,
+            LocalDateTime hasta
+    ) throws SQLException {
+        try (Connection conexion = conexionDB.getConnection()) {
+            return List.copyOf(movimientos.listar(desde, hasta, conexion));
+        }
     }
 
     @Override
