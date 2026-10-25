@@ -10,9 +10,7 @@ import java.util.List;
 
 public interface ICatalogoService {
 
-     //Busca un producto e incluye su receta base y sus opciones con sus recetas.
-     //La conexión pertenece al llamador y este método no debe cerrarla.
-
+    // Consulta para el catálogo que se muestra al cliente.
     Producto obtenerProducto(
             long productoId,
             Connection conexion
@@ -27,4 +25,9 @@ public interface ICatalogoService {
     List<OpcionProducto> listarOpcionesDeProducto(
             long productoId
     ) throws SQLException;
+
+    // Operaciones administrativas de categorías.
+    List<Categoria> listarCategoriasAdministracion() throws SQLException;
+
+    void guardarCategoria(Categoria categoria) throws SQLException;
 }
