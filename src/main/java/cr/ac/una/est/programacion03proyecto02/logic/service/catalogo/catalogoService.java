@@ -16,6 +16,8 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 
 public class catalogoService implements ICatalogoService {
 
@@ -74,7 +76,36 @@ public class catalogoService implements ICatalogoService {
         }
 
         actualizarDisponibilidad(producto, conexion);
+        // El pedido solo puede elegir opciones activas; el editor obtiene todas por la otra consulta.
+        producto.setOpciones(new ArrayList<>(producto.getOpciones().stream().filter(OpcionProducto::isActiva).toList()));
         return producto;
+    }
+
+    @Override
+    public Producto obtenerProducto(long productoId) throws SQLException {
+        try (Connection conexion = conexionDB.getConnection()) {
+            Producto producto = productos.buscar(productoId, conexion);
+            if (producto == null) throw new NoSuchElementException("No existe el producto con ID " + productoId);
+            return producto;
+        }
+    }
+
+    @Override
+    public void guardarProducto(Producto producto) throws SQLException {
+        // El DAO no modifica IDs del formulario antes de confirmar la transacción.
+        Producto guardado = ejecutarTransaccion(conexion -> productos.guardarConRecetas(producto, conexion));
+        producto.setId(guardado.getId());
+        for (int i = 0; i < producto.getOpciones().size(); i++) {
+            producto.getOpciones().get(i).setId(guardado.getOpciones().get(i).getId());
+        }
+    }
+
+    @Override
+    public void desactivarProducto(long productoId) throws SQLException {
+        ejecutarTransaccion(conexion -> {
+            productos.desactivar(productoId, conexion);
+            return null;
+        });
     }
 
     @Override
@@ -124,16 +155,18 @@ public class catalogoService implements ICatalogoService {
             Producto producto,
             Connection conexion
     ) throws SQLException {
-        Map<Long, Double> cantidades = new TreeMap<>();
+        Map<Long, BigDecimal> totales = new TreeMap<>();
 
         for (recetaItem item : producto.getReceta()) {
-            cantidades.merge(
+            totales.merge(
                     item.getIngredienteId(),
-                    item.getCantidadRequerida(),
-                    Double::sum
+                    BigDecimal.valueOf(item.getCantidadRequerida()),
+                    BigDecimal::add
             );
         }
 
+        Map<Long, Double> cantidades = new TreeMap<>();
+        totales.forEach((id, cantidad) -> cantidades.put(id, cantidad.doubleValue()));
         producto.setDisponible(
                 inventario.hayStockSuficiente(cantidades, conexion)
         );

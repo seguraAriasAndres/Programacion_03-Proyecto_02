@@ -130,6 +130,8 @@
                                 <testInclude>cr/ac/una/est/programacion03proyecto02/logic/repository/pedidos/**/*Test.java</testInclude>
                                 <testInclude>cr/ac/una/est/programacion03proyecto02/logic/service/pedidos/**/*Test.java</testInclude>
                                 <testInclude>cr/ac/una/est/programacion03proyecto02/persistence/dao/pedidos/**/*Test.java</testInclude>
+                                <testInclude>cr/ac/una/est/programacion03proyecto02/persistence/dao/catalogo/**/*Test.java</testInclude>
+                                <testInclude>cr/ac/una/est/programacion03proyecto02/persistence/dao/inventario/**/*Test.java</testInclude>
                                 <testInclude>cr/ac/una/est/programacion03proyecto02/persistence/connection/**/*Test.java</testInclude>
                             </testIncludes>
                         </configuration>

@@ -91,7 +91,7 @@ public class Producto {
 
     //reemplaza la receta base, si recibe null, deja una lista vacía
     public void setReceta(List<recetaItem> receta) {
-        this.receta = receta != null ? receta : new ArrayList<>();
+        this.receta = receta != null ? new ArrayList<>(receta) : new ArrayList<>();
     }
 
     public List<OpcionProducto> getOpciones() {
@@ -99,7 +99,7 @@ public class Producto {
     }
 
     public void setOpciones(List<OpcionProducto> opciones) {
-        this.opciones = opciones != null ? opciones : new ArrayList<>();
+        this.opciones = opciones != null ? new ArrayList<>(opciones) : new ArrayList<>();
     }
 
     /** Precio sin opciones elegidas por el cliente. */

@@ -5,7 +5,6 @@ import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.Producto;
 import cr.ac.una.est.programacion03proyecto02.logic.model.seguridad.enums.Rol;
 import cr.ac.una.est.programacion03proyecto02.logic.service.catalogo.catalogoService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.SesionActual;
-import cr.ac.una.est.programacion03proyecto02.persistence.dao.pedidos.ProductoDAO;
 import cr.ac.una.est.programacion03proyecto02.view.navigation.NavegadorVistas;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.fxml.FXML;
@@ -16,7 +15,6 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 
-import java.sql.SQLException;
 import java.util.Objects;
 
 //controlador para listar, filtrar, editar y desactivar productos
@@ -24,7 +22,6 @@ public class ProductosController {
     private final catalogoService catalogo;
     private final SesionActual sesion;
     private final NavegadorVistas navegador;
-    private final ProductoDAO productoDAO;
 
     @FXML private ComboBox<Categoria> cmbCategoria;
     @FXML private TableView<Producto> tblProductos;
@@ -34,12 +31,12 @@ public class ProductosController {
     @FXML private TableColumn<Producto, String> colProductoPrecio;
     @FXML private TableColumn<Producto, Boolean> colProductoDisponible;
     @FXML private Label lblMensaje;
+    @FXML private javafx.scene.layout.BorderPane raiz;
 
     public ProductosController(catalogoService catalogo, SesionActual sesion, NavegadorVistas navegador) {
         this.catalogo = Objects.requireNonNull(catalogo);
         this.sesion = Objects.requireNonNull(sesion);
         this.navegador = Objects.requireNonNull(navegador);
-        this.productoDAO = new ProductoDAO();
     }
 
     //configura la tabla y el filtro de categorías, y carga los productos
@@ -78,23 +75,20 @@ public class ProductosController {
                 .selectedItemProperty()
                 .addListener((observable, anterior, actual) -> onActualizar());
         cargarCategorias();
-        onActualizar();
     }
 
     //actualiza la tabla, usando la categoría seleccionada como filtro
     @FXML
     private void onActualizar() {
-        try {
-            Categoria categoria = cmbCategoria.getValue();
-            if (categoria == null) {
-                tblProductos.getItems().setAll(catalogo.listarProductosActivos());
-            } else {
-                tblProductos.getItems().setAll(catalogo.listarPorCategoria(categoria.getId()));
-            }
+        Categoria categoria = cmbCategoria.getValue();
+        TareaCatalogo.ejecutar(raiz, () -> {
+            sesion.exigirRol(Rol.ADMIN);
+            return categoria == null ? catalogo.listarProductosActivos()
+                    : catalogo.listarPorCategoria(categoria.getId());
+        }, productos -> {
+            tblProductos.getItems().setAll(productos);
             mostrarMensaje("Productos actualizados.");
-        } catch (SQLException | RuntimeException error) {
-            mostrarError("No se pudieron cargar los productos.", error);
-        }
+        }, error -> mostrarError("No se pudieron cargar los productos.", error));
     }
 
     //abre el editor para crear un producto nuevo
@@ -134,9 +128,10 @@ public class ProductosController {
         }
         try {
             sesion.exigirRol(Rol.ADMIN);
-            productoDAO.desactivar(Math.toIntExact(producto.getId()));
-            mostrarMensaje("Producto desactivado.");
-            onActualizar();
+            TareaCatalogo.ejecutar(raiz, () -> {
+                catalogo.desactivarProducto(producto.getId());
+                return null;
+            }, resultado -> onActualizar(), error -> mostrarError("No se pudo desactivar el producto.", error));
         } catch (RuntimeException error) {
             mostrarError("No se pudo desactivar el producto.", error);
         }
@@ -144,11 +139,15 @@ public class ProductosController {
 
     //carga las categorías activas para el filtro
     private void cargarCategorias() {
-        try {
-            cmbCategoria.getItems().setAll(catalogo.listarCategorias());
-        } catch (SQLException | RuntimeException error) {
-            mostrarError("No se pudieron cargar las categorías.", error);
-        }
+        TareaCatalogo.ejecutar(raiz, () -> {
+            sesion.exigirRol(Rol.ADMIN);
+            return catalogo.listarCategorias();
+        }, categorias -> {
+            cmbCategoria.getItems().setAll(categorias);
+            // null representa todas y permite quitar el filtro sin reiniciar la vista.
+            cmbCategoria.getItems().add(0, null);
+            onActualizar();
+        }, error -> mostrarError("No se pudieron cargar las categorías.", error));
     }
 
     //actualiza el mensaje de estado

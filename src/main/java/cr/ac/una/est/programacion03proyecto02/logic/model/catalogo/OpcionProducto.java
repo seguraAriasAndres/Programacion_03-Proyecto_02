@@ -80,6 +80,6 @@ public class OpcionProducto {
 
     //si se recibe null, asigna una lista vacía para evitar errores al usarla
     public void setReceta(List<recetaItem> receta) {
-        this.receta = receta != null ? receta : new ArrayList<>();
+        this.receta = receta != null ? new ArrayList<>(receta) : new ArrayList<>();
     }
 }

@@ -31,3 +31,11 @@ public interface ICatalogoService {
 
     void guardarCategoria(Categoria categoria) throws SQLException;
 
+    // Consulta administrativa: incluye productos y opciones inactivos para editarlos.
+    Producto obtenerProducto(long productoId) throws SQLException;
+
+    void guardarProducto(Producto producto) throws SQLException;
+
+    void desactivarProducto(long productoId) throws SQLException;
+}
+
