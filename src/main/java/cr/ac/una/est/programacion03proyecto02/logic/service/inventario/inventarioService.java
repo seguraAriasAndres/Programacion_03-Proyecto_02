@@ -86,7 +86,7 @@ public class inventarioService implements iinventarioService {
         validarDatosPedido(pedidoId, usuario, conexion);
 
         Map<Long, Double> cantidadesValidadas =
-                validarCantidades(cantidades, false);
+                validarCantidades(cantidades, true);
 
         if (!ingredientes.validar(cantidadesValidadas, conexion)) {
             throw new IllegalStateException(
@@ -125,7 +125,7 @@ public class inventarioService implements iinventarioService {
         validarDatosPedido(pedidoId, usuario, conexion);
 
         Map<Long, Double> cantidadesValidadas =
-                validarCantidades(cantidades, false);
+                validarCantidades(cantidades, true);
 
         for (Map.Entry<Long, Double> entrada : cantidadesValidadas.entrySet()) {
             long ingredienteId = entrada.getKey();

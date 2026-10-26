@@ -8,7 +8,6 @@ import cr.ac.una.est.programacion03proyecto02.logic.model.pedidos.Recibo;
 import cr.ac.una.est.programacion03proyecto02.logic.service.catalogo.catalogoService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.inventario.iinventarioService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.SesionActual;
-import cr.ac.una.est.programacion03proyecto02.persistence.connection.ConexionDB;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -29,15 +28,13 @@ public class NavegadorVistas {
     private catalogoService catalogo;
     private iinventarioService inventario;
     private SesionActual sesion;
-    private ConexionDB conexionDB;
 
     //configura la ventana y las dependencias necesarias para crear controladores
-    public void configurar(Stage ventana, catalogoService catalogo, iinventarioService inventario, SesionActual sesion, ConexionDB conexionDB) {
+    public void configurar(Stage ventana, catalogoService catalogo, iinventarioService inventario, SesionActual sesion) {
         this.ventana = Objects.requireNonNull(ventana);
         this.catalogo = Objects.requireNonNull(catalogo);
         this.inventario = Objects.requireNonNull(inventario);
         this.sesion = Objects.requireNonNull(sesion);
-        this.conexionDB = Objects.requireNonNull(conexionDB);
     }
 
     //abre la vista de inicio de sesión
@@ -47,7 +44,7 @@ public class NavegadorVistas {
 
     //abre el menú principal
     public void mostrarMenu() {
-        abrir("menu.fxml");
+        abrir("seguridad/menu.fxml");
     }
 
     //abre una vista relativa a la carpeta view
@@ -81,7 +78,7 @@ public class NavegadorVistas {
     //abre la vista de pedido y guarda el id para el controlador
     public void abrirPedido(long pedidoId) {
         guardarPedidoId(pedidoId);
-        abrir("pedidos/pedido.fxml");
+        abrir("pedidos/toma-pedido.fxml");
     }
 
     //abre la vista de cobro y guarda el id para el controlador
@@ -170,7 +167,7 @@ public class NavegadorVistas {
             return new ProductosController(catalogo, sesion, this);
         }
         if (tipo == ProductoEditorController.class) {
-            return new ProductoEditorController(catalogo, inventario, sesion, this, conexionDB);
+            return new ProductoEditorController(catalogo, inventario, sesion, this);
         }
         if (tipo == ReciboController.class) {
             return new ReciboController(this);

@@ -10,8 +10,6 @@ import cr.ac.una.est.programacion03proyecto02.logic.model.seguridad.enums.Rol;
 import cr.ac.una.est.programacion03proyecto02.logic.service.catalogo.catalogoService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.inventario.iinventarioService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.SesionActual;
-import cr.ac.una.est.programacion03proyecto02.persistence.connection.ConexionDB;
-import cr.ac.una.est.programacion03proyecto02.persistence.dao.pedidos.ProductoDAO;
 import cr.ac.una.est.programacion03proyecto02.view.navigation.NavegadorVistas;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.fxml.FXML;
@@ -25,8 +23,6 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -37,10 +33,11 @@ public class ProductoEditorController {
     private final iinventarioService inventario;
     private final SesionActual sesion;
     private final NavegadorVistas navegador;
-    private final ProductoDAO productoDAO;
-    private final ConexionDB conexionDB;
 
     private Producto producto;
+    private boolean referenciasCargadas;
+    private Long productoPendiente;
+    @FXML private javafx.scene.layout.BorderPane raiz;
 
     @FXML private TextField txtNombre;
     @FXML private TextField txtPrecioBase;
@@ -71,13 +68,11 @@ public class ProductoEditorController {
 
     @FXML private Label lblMensaje;
 
-    public ProductoEditorController(catalogoService catalogo, iinventarioService inventario, SesionActual sesion, NavegadorVistas navegador, ConexionDB conexionDB) {
+    public ProductoEditorController(catalogoService catalogo, iinventarioService inventario, SesionActual sesion, NavegadorVistas navegador) {
         this.catalogo = Objects.requireNonNull(catalogo);
         this.inventario = Objects.requireNonNull(inventario);
         this.sesion = Objects.requireNonNull(sesion);
         this.navegador = Objects.requireNonNull(navegador);
-        this.conexionDB = Objects.requireNonNull(conexionDB);
-        this.productoDAO = new ProductoDAO();
     }
 
     //configura las tablas y carga las categorías, ingredientes y tipos
@@ -114,15 +109,23 @@ public class ProductoEditorController {
 
     //carga un producto existente. Si el id es cero, prepara uno nuevo
     public void mostrarProducto(long productoId) {
+        if (productoId < 0) throw new IllegalArgumentException("El ID no puede ser negativo.");
+        if (!referenciasCargadas) {
+            productoPendiente = productoId;
+            return;
+        }
         if (productoId <= 0) {
             prepararProductoNuevo();
             return;
         }
-        try (Connection conexion = conexionDB.getConnection()) {
-            producto = catalogo.obtenerProducto(productoId, conexion);
-            mostrarProductoEnFormulario();
-            mostrarMensaje("Producto cargado.");
-        } catch (SQLException | RuntimeException error) {
+        try {
+            sesion.exigirRol(Rol.ADMIN);
+            TareaCatalogo.ejecutar(raiz, () -> catalogo.obtenerProducto(productoId), cargado -> {
+                producto = cargado;
+                mostrarProductoEnFormulario();
+                mostrarMensaje("Producto cargado.");
+            }, error -> mostrarError("No se pudo cargar el producto.", error));
+        } catch (RuntimeException error) {
             mostrarError("No se pudo cargar el producto.", error);
         }
     }
@@ -259,10 +262,18 @@ public class ProductoEditorController {
             producto.setCategoria(categoria);
             producto.setActivo(chkActivo.isSelected());
 
-            productoDAO.guardarConRecetas(producto);
-
-            mostrarMensaje("Producto guardado correctamente.");
-            navegador.mostrarProductos();
+            Producto cambios = producto;
+            TareaCatalogo.ejecutar(raiz, () -> {
+                catalogo.guardarProducto(cambios);
+                return null;
+            }, resultado -> {
+                mostrarMensaje("Producto guardado correctamente.");
+                try {
+                    navegador.mostrarProductos();
+                } catch (RuntimeException error) {
+                    mostrarError("El producto fue guardado, pero no se pudo abrir la lista.", error);
+                }
+            }, error -> mostrarError("No se pudo guardar el producto. Consulte su estado antes de reintentar.", error));
         } catch (RuntimeException error) {
             mostrarError("No se pudo guardar el producto.", error);
         }
@@ -276,13 +287,20 @@ public class ProductoEditorController {
 
     //carga categorías e ingredientes desde sus servicios
     private void cargarCategoriasEIngredientes() {
-        try {
-            cmbCategoria.getItems().setAll(catalogo.listarCategoriasAdministracion());
-
-            cmbIngrediente.getItems().setAll(inventario.listarIngredientes());
-        } catch (SQLException | RuntimeException error) {
-            mostrarError("No se pudieron cargar categorías o ingredientes.", error);
-        }
+        record Referencias(List<Categoria> categorias, List<ingrediente> ingredientes) { }
+        TareaCatalogo.ejecutar(raiz, () -> {
+            sesion.exigirRol(Rol.ADMIN);
+            return new Referencias(catalogo.listarCategoriasAdministracion(), inventario.listarIngredientes());
+        }, referencias -> {
+            cmbCategoria.getItems().setAll(referencias.categorias());
+            cmbIngrediente.getItems().setAll(referencias.ingredientes());
+            referenciasCargadas = true;
+            if (productoPendiente != null) {
+                long id = productoPendiente;
+                productoPendiente = null;
+                mostrarProducto(id);
+            }
+        }, error -> mostrarError("No se pudieron cargar categorías o ingredientes.", error));
     }
 
     //prepara el formulario para crear un producto nuevo
@@ -336,7 +354,9 @@ public class ProductoEditorController {
         for (int i = 0; i < receta.size(); i++) {
             recetaItem existente = receta.get(i);
             if (existente.getIngredienteId() == ingredienteElegido.getId()) {
-                receta.set(i, new recetaItem(existente.getIngredienteId(), existente.getCantidadRequerida() + cantidad));
+                double total = BigDecimal.valueOf(existente.getCantidadRequerida())
+                        .add(BigDecimal.valueOf(cantidad)).doubleValue();
+                receta.set(i, new recetaItem(existente.getIngredienteId(), total));
                 return;
             }
         }
