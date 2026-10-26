@@ -258,17 +258,16 @@ class PedidoServiceTest {
     }
 
     @Test void crearDevuelveIdYLasConsultasRecuperanCambiosDeOtrasSesiones() throws Exception {
-        Pedido creado=servicio.crearPedido("Luis","cajero");
+        Pedido creado=servicio.crear("Luis","cajero");
         assertTrue(creado.getIdPedido()>Integer.MAX_VALUE);
         assertNotNull(servicio.repositorio.obtenerPedidoPorId(creado.getIdPedido()));
         try(var s=real.prepareStatement("UPDATE pedido SET nombre_cliente='Nombre actualizado' WHERE id=?")) {
             s.setLong(1,creado.getIdPedido());s.executeUpdate();
         }
         real.commit();
-        assertEquals("Nombre actualizado",servicio.obtenerPedido(creado.getIdPedido()).getNombreCliente());
         assertEquals("Nombre actualizado",servicio.obtener(creado.getIdPedido()).getNombreCliente());
         assertTrue(servicio.listarActivos().stream().anyMatch(p->p.getNombreCliente().equals("Nombre actualizado")));
-        assertNull(servicio.obtenerPedido(Long.MAX_VALUE));
+        assertNull(servicio.obtener(Long.MAX_VALUE));
     }
 
     private BigDecimal stock(long id) throws Exception {
