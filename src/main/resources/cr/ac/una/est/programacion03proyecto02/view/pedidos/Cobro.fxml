@@ -5,7 +5,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
 
-<AnchorPane prefHeight="500.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cr.ac.una.est.programacion03proyecto02.controller.pedidos.CobroController">
+<AnchorPane fx:id="raiz" prefHeight="500.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cr.ac.una.est.programacion03proyecto02.controller.pedidos.CobroController">
    <children>
       <VBox spacing="12.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <padding><Insets bottom="20.0" left="20.0" right="20.0" top="20.0" /></padding>
@@ -72,7 +72,7 @@
                </children>
             </GridPane>
             <Label fx:id="lblMensaje" maxWidth="Infinity" text="Seleccione un método de pago para continuar." wrapText="true" />
-            <!-- Los eventos se conectaran cuando existan onCerrar() y onCobrar() en el controlador. -->
+            <!-- Acciones conectadas al controlador de cobro. -->
             <GridPane alignment="CENTER_RIGHT" hgap="10.0">
               <columnConstraints>
                 <ColumnConstraints hgrow="NEVER" />
@@ -82,7 +82,8 @@
                 <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
               </rowConstraints>
                <children>
-                  <Button fx:id="btnVolver" mnemonicParsing="false" onAction="#onCerrar" text="Volver" />
+                  <Button fx:id="btnActualizar" text="Actualizar pedido" onAction="#onActualizar" GridPane.columnIndex="2" />
+                  <Button fx:id="btnVolver" mnemonicParsing="false" onAction="#onCerrar" text="Volver a pedidos" />
                   <Button fx:id="btnCobrar" disable="true" mnemonicParsing="false" onAction="#onCobrar" text="Confirmar cobro" GridPane.columnIndex="1" />
                </children>
             </GridPane>

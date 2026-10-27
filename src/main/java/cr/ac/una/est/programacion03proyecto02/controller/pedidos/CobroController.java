@@ -6,6 +6,8 @@ import cr.ac.una.est.programacion03proyecto02.logic.model.pedidos.enums.EstadoPa
 import cr.ac.una.est.programacion03proyecto02.logic.model.pedidos.enums.EstadoPreparacion;
 import cr.ac.una.est.programacion03proyecto02.logic.model.pedidos.enums.MetodoPago;
 import cr.ac.una.est.programacion03proyecto02.logic.service.pedidos.CobroService;
+import cr.ac.una.est.programacion03proyecto02.logic.service.pedidos.PedidoService;
+import cr.ac.una.est.programacion03proyecto02.logic.model.seguridad.enums.Rol;
 import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.SesionActual;
 import cr.ac.una.est.programacion03proyecto02.view.navigation.NavegadorVistas;
 import cr.ac.una.est.programacion03proyecto02.logic.model.pedidos.lineaPedido;
@@ -22,12 +24,13 @@ import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.layout.AnchorPane;
 
 import java.math.RoundingMode;
 import java.util.Objects;
 
 public class CobroController {
-    //PedidoService pedidoService;
+    private final PedidoService pedidoService;
     private final CobroService cobroService;
     private final SesionActual sesionActual;
     private final NavegadorVistas navegadorVistas;
@@ -42,6 +45,7 @@ public class CobroController {
     @FXML private Label lblTotal;
     @FXML private Label lblMensaje;
     @FXML private TableView<lineaPedido> tblLineas;
+    @FXML private AnchorPane raiz;
 
     @FXML private TableColumn<lineaPedido, String> colProducto;
     @FXML private TableColumn<lineaPedido, String> colOpciones;
@@ -54,16 +58,18 @@ public class CobroController {
     @FXML private Button btnCobrar;
 
 
-    public CobroController (CobroService cobroService, SesionActual sesionActual, NavegadorVistas navegadorVistas, Long pedidoId) {
+    public CobroController(PedidoService pedidoService, CobroService cobroService,
+                           SesionActual sesionActual, NavegadorVistas navegadorVistas) {
+        this.pedidoService = Objects.requireNonNull(pedidoService, "Falta el servicio de pedidos.");
         this.cobroService = Objects.requireNonNull(cobroService, "Falta el servicio de cobro.");
         this.sesionActual = Objects.requireNonNull(sesionActual, "Falta la sesión actual.");
         this.navegadorVistas = Objects.requireNonNull(navegadorVistas, "Falta el navegador.");
-        this.pedidoId = pedidoId;
     }
 
 
     @FXML
     private void initialize() {
+        raiz.disableProperty().bind(cobrando);
         // Configura que dato de cada lineaPedido corresponde a cada columna.
         colProducto.setCellValueFactory(celda ->
                 new ReadOnlyObjectWrapper<>(celda.getValue().getNombreProducto()));
@@ -98,6 +104,36 @@ public class CobroController {
         btnVolver.disableProperty().bind(cobrando);
     }
 
+    /** Recupera el pedido actual sin hacer SQL en el hilo de la interfaz. */
+    public void mostrarPedido(long id) {
+        if (cobrando.get()) return;
+        try {
+            sesionActual.exigirRol(Rol.CAJERO);
+            if (id <= 0) throw new IllegalArgumentException("El ID debe ser positivo.");
+            pedidoId = id;
+            pedidoListoParaCobrar.set(false);
+            Task<Pedido> tarea = new Task<>() {
+                @Override protected Pedido call() throws Exception { return pedidoService.obtener(id); }
+            };
+            tarea.setOnSucceeded(e -> {
+                cobrando.set(false);
+                if (tarea.getValue() == null) lblMensaje.setText("El pedido no existe.");
+                else mostrarPedido(tarea.getValue());
+            });
+            tarea.setOnFailed(e -> {
+                cobrando.set(false);
+                lblMensaje.setText(TareaPedidos.mensaje("No se pudo cargar el pedido.", tarea.getException()));
+            });
+            cobrando.set(true);
+            lblMensaje.setText("Cargando pedido...");
+            new Thread(tarea, "cargar-cobro").start();
+        } catch (RuntimeException error) { lblMensaje.setText(error.getMessage()); }
+    }
+
+    @FXML private void onActualizar() {
+        if (pedidoId != null) mostrarPedido(pedidoId.longValue());
+    }
+
     public void mostrarPedido (Pedido pedido) {
         if (cobrando.get()) {
             throw new IllegalStateException("No se puede cambiar de pedido durante un cobro.");
@@ -128,6 +164,8 @@ public class CobroController {
         if (cobrando.get()) {
             return;
         }
+        try { sesionActual.exigirRol(Rol.CAJERO); }
+        catch (RuntimeException error) { lblMensaje.setText(error.getMessage()); return; }
         if (sesionActual.getUsuario() == null || !sesionActual.getUsuario().isActivo()) {
             lblMensaje.setText("Debe iniciar una sesión válida para cobrar.");
             return;
@@ -189,7 +227,7 @@ public class CobroController {
 
     @FXML private void onCerrar () {
         if (!cobrando.get()) {
-            navegadorVistas.mostrarMenu();
+            navegadorVistas.mostrarPedidosActivos();
         }
     }
 }
