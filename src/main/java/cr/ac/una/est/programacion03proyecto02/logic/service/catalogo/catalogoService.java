@@ -34,7 +34,7 @@ public class catalogoService implements ICatalogoService {
 
     // Lista todas las categorías para administración.
     @Override
-    public List<Categoria> listarCategoriasAdministracion() throws SQLException {
+    public List<Categoria> listarCategoriasAdministracion() throws SQLException{
         try (Connection conexion = conexionDB.getConnection()){
             return List.copyOf(categorias.listarTodas(conexion));
         }
@@ -45,31 +45,31 @@ public class catalogoService implements ICatalogoService {
     public void guardarCategoria(Categoria categoria) throws SQLException{
         Objects.requireNonNull(categoria, "La categoría no puede ser null.");
         validarCategoria(categoria);
-
         long id = ejecutarTransaccion(conexion -> categorias.guardar(categoria, conexion));
-
         categoria.setId(id);
     }
 
     // Busca un producto activo y calcula la disponibilidad de su receta base.
     @Override
-    public Producto obtenerProducto(
-            long productoId,
-            Connection conexion
-    ) throws SQLException{
+    public Producto obtenerProducto(long productoId, Connection conexion) throws SQLException{
         Objects.requireNonNull(conexion, "La conexión no puede ser null.");
-
         Producto producto = obtenerProductoActivo(productoId, conexion);
         producto.setDisponible(inventario.hayStockSuficiente(calculadorReceta.calcular(producto, List.of(), 1), conexion));
-
         return producto;
+    }
+
+    // Comprueba la disponibilidad de una combinación abriendo su propia conexión.
+    @Override
+    public boolean hayStockSuficientePara(long productoId, List<Long> opcionesId, int cantidad) throws SQLException{
+        try (Connection conexion = conexionDB.getConnection()){
+            return hayStockSuficientePara(productoId, opcionesId, cantidad, conexion);
+        }
     }
 
     // Comprueba stock para el producto y las opciones elegidas en la misma conexión.
     @Override
-    public boolean hayStockSuficientePara(long productoId, List<Long> opcionesId, int cantidad, Connection conexion) throws SQLException {
+    public boolean hayStockSuficientePara(long productoId, List<Long> opcionesId, int cantidad, Connection conexion) throws SQLException{
         Objects.requireNonNull(conexion, "La conexión no puede ser null.");
-
         if (productoId <= 0){
             throw new IllegalArgumentException("El ID del producto debe ser positivo.");
         }
@@ -80,9 +80,7 @@ public class catalogoService implements ICatalogoService {
         List<Long> idsValidados = validarIdsOpciones(opcionesId);
         Producto producto = obtenerProductoActivo(productoId, conexion);
         List<OpcionProducto> opciones = seleccionarOpciones(producto, idsValidados);
-
         Map<Long, Double> cantidades = calculadorReceta.calcular(producto, opciones, cantidad);
-
         return inventario.hayStockSuficiente(cantidades, conexion);
     }
 
@@ -91,11 +89,9 @@ public class catalogoService implements ICatalogoService {
     public Producto obtenerProducto(long productoId) throws SQLException{
         try (Connection conexion = conexionDB.getConnection()){
             Producto producto = productos.buscar(productoId, conexion);
-
             if (producto == null){
                 throw new NoSuchElementException("No existe el producto con ID " + productoId + ".");
             }
-
             return producto;
         }
     }
@@ -104,14 +100,10 @@ public class catalogoService implements ICatalogoService {
     @Override
     public void guardarProducto(Producto producto) throws SQLException{
         Objects.requireNonNull(producto, "El producto no puede ser null.");
-
-        Producto guardado = ejecutarTransaccion( conexion -> productos.guardarConRecetas(producto, conexion)
-        );
-
+        Producto guardado = ejecutarTransaccion(conexion -> productos.guardarConRecetas(producto, conexion));
         producto.setId(guardado.getId());
-
         for (int i = 0; i < producto.getOpciones().size(); i++){
-            producto.getOpciones() .get(i) .setId(guardado.getOpciones().get(i).getId());
+            producto.getOpciones().get(i).setId(guardado.getOpciones().get(i).getId());
         }
     }
 
@@ -137,11 +129,9 @@ public class catalogoService implements ICatalogoService {
     public List<Producto> listarPorCategoria(long categoriaId) throws SQLException{
         try (Connection conexion = conexionDB.getConnection()){
             List<Producto> resultado = productos.listarPorCategoria(categoriaId, conexion);
-
             for (Producto producto : resultado){
                 actualizarDisponibilidad(producto, conexion);
             }
-
             return List.copyOf(resultado);
         }
     }
@@ -151,18 +141,16 @@ public class catalogoService implements ICatalogoService {
     public List<Producto> listarProductosActivos() throws SQLException{
         try (Connection conexion = conexionDB.getConnection()){
             List<Producto> resultado = productos.listarActivos(conexion);
-
             for (Producto producto : resultado){
                 actualizarDisponibilidad(producto, conexion);
             }
-
             return List.copyOf(resultado);
         }
     }
 
     // Devuelve solo opciones activas para la toma de pedidos.
     @Override
-    public List<OpcionProducto> listarOpcionesDeProducto(long productoId) throws SQLException {
+    public List<OpcionProducto> listarOpcionesDeProducto(long productoId) throws SQLException{
         try (Connection conexion = conexionDB.getConnection()){
             return List.copyOf(obtenerProducto(productoId, conexion).getOpciones());
         }
@@ -173,46 +161,36 @@ public class catalogoService implements ICatalogoService {
         if (productoId <= 0){
             throw new IllegalArgumentException("El ID del producto debe ser positivo.");
         }
-
         Producto producto = productos.buscar(productoId, conexion);
-
         if (producto == null || !producto.isActivo() || producto.getCategoria() == null || !producto.getCategoria().isActiva()){
             throw new NoSuchElementException("No existe un producto activo con ID " + productoId + ".");
         }
-
         producto.setOpciones(producto.getOpciones().stream().filter(OpcionProducto::isActiva).toList());
-
         return producto;
     }
 
     // Comprueba el stock de la receta base de un producto.
     private void actualizarDisponibilidad(Producto producto, Connection conexion) throws SQLException{
-        Map<Long, Double> cantidades =calculadorReceta.calcular(producto, List.of(), 1);
-
+        Map<Long, Double> cantidades = calculadorReceta.calcular(producto, List.of(), 1);
         producto.setDisponible(inventario.hayStockSuficiente(cantidades, conexion));
     }
 
     // Selecciona opciones activas que pertenezcan al producto.
     private List<OpcionProducto> seleccionarOpciones(Producto producto, List<Long> opcionesId){
         List<OpcionProducto> seleccionadas = new ArrayList<>();
-
         for (Long opcionId : opcionesId){
             OpcionProducto encontrada = null;
-
             for (OpcionProducto opcion : producto.getOpciones()){
                 if (opcion.getId() == opcionId){
                     encontrada = opcion;
                     break;
                 }
             }
-
             if (encontrada == null){
                 throw new IllegalArgumentException("Una opción no pertenece al producto o está inactiva.");
             }
-
             seleccionadas.add(encontrada);
         }
-
         return List.copyOf(seleccionadas);
     }
 
@@ -221,18 +199,14 @@ public class catalogoService implements ICatalogoService {
         if (opcionesId == null){
             throw new IllegalArgumentException("Use una lista vacía si no eligió opciones.");
         }
-
         List<Long> resultado = new ArrayList<>();
         Set<Long> revisados = new HashSet<>();
-
-        for (Long opcionId : opcionesId) {
+        for (Long opcionId : opcionesId){
             if (opcionId == null || opcionId <= 0 || !revisados.add(opcionId)){
                 throw new IllegalArgumentException("Los IDs de opción deben ser positivos y únicos.");
             }
-
             resultado.add(opcionId);
         }
-
         return List.copyOf(resultado);
     }
 
@@ -241,13 +215,10 @@ public class catalogoService implements ICatalogoService {
         if (categoria.getId() < 0){
             throw new IllegalArgumentException("El ID de la categoría no puede ser negativo.");
         }
-
         String nombre = categoria.getNombre();
-
         if (nombre == null || nombre.isBlank() || nombre.trim().length() > 100){
-            throw new IllegalArgumentException("El nombre de la categoría es obligatorio y admite " + "hasta 100 caracteres.");
+            throw new IllegalArgumentException("El nombre de la categoría es obligatorio y admite hasta 100 caracteres.");
         }
-
         categoria.setNombre(nombre.trim());
     }
 
@@ -255,7 +226,6 @@ public class catalogoService implements ICatalogoService {
     private <T> T ejecutarTransaccion(operacionConConexion<T> operacion) throws SQLException{
         try (Connection conexion = conexionDB.getConnection()){
             conexion.setAutoCommit(false);
-
             try{
                 T resultado = operacion.ejecutar(conexion);
                 conexion.commit();
@@ -266,7 +236,6 @@ public class catalogoService implements ICatalogoService {
                 } catch (SQLException errorRollback){
                     error.addSuppressed(errorRollback);
                 }
-
                 throw error;
             }
         }
