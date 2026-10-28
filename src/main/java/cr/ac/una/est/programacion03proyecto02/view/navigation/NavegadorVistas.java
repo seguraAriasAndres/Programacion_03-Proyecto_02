@@ -3,16 +3,23 @@ package cr.ac.una.est.programacion03proyecto02.view.navigation;
 import cr.ac.una.est.programacion03proyecto02.controller.catalogo.CategoriasController;
 import cr.ac.una.est.programacion03proyecto02.controller.catalogo.ProductoEditorController;
 import cr.ac.una.est.programacion03proyecto02.controller.catalogo.ProductosController;
+import cr.ac.una.est.programacion03proyecto02.controller.inventario.inventarioController;
 import cr.ac.una.est.programacion03proyecto02.controller.pedidos.CobroController;
 import cr.ac.una.est.programacion03proyecto02.controller.pedidos.PedidosActivosController;
 import cr.ac.una.est.programacion03proyecto02.controller.pedidos.ReciboController;
 import cr.ac.una.est.programacion03proyecto02.controller.pedidos.TomaPedidosController;
+import cr.ac.una.est.programacion03proyecto02.controller.reportes.reportesController;
+import cr.ac.una.est.programacion03proyecto02.controller.seguridad.inicioController;
+import cr.ac.una.est.programacion03proyecto02.controller.seguridad.loginController;
+import cr.ac.una.est.programacion03proyecto02.controller.seguridad.menuController;
 import cr.ac.una.est.programacion03proyecto02.logic.model.pedidos.Recibo;
 import cr.ac.una.est.programacion03proyecto02.logic.model.seguridad.enums.Rol;
 import cr.ac.una.est.programacion03proyecto02.logic.service.catalogo.catalogoService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.inventario.iinventarioService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.pedidos.CobroService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.pedidos.PedidoService;
+import cr.ac.una.est.programacion03proyecto02.logic.service.reportes.ReporteService;
+import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.IAutenticacionService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.SesionActual;
 
 import javafx.fxml.FXMLLoader;
@@ -38,19 +45,27 @@ public class NavegadorVistas{
     private SesionActual sesion;
     private PedidoService pedidos;
     private CobroService cobros;
+    private IAutenticacionService autenticacion;
+    private ReporteService reportes;
 
     // Guarda los servicios de pedidos y cobros que compartirán sus controladores.
     public void configurarPedidos(PedidoService pedidos, CobroService cobros){
-        this.pedidos = Objects.requireNonNull(pedidos, "Falta el servicio de pedidos.");
-        this.cobros = Objects.requireNonNull(cobros, "Falta el servicio de cobros.");
+        this.pedidos = Objects.requireNonNull(pedidos);
+        this.cobros = Objects.requireNonNull(cobros);
+    }
+
+    // Guarda los servicios de login y reportes que usarán sus controladores.
+    public void configurarPantallas(IAutenticacionService autenticacion, ReporteService reportes){
+        this.autenticacion = Objects.requireNonNull(autenticacion);
+        this.reportes = Objects.requireNonNull(reportes);
     }
 
     // Configura la ventana, los servicios compartidos y la sesión actual.
     public void configurar(Stage ventana, catalogoService catalogo, iinventarioService inventario, SesionActual sesion){
-        this.ventana = Objects.requireNonNull(ventana, "Falta la ventana principal.");
-        this.catalogo = Objects.requireNonNull(catalogo, "Falta el servicio de catálogo.");
-        this.inventario = Objects.requireNonNull(inventario, "Falta el servicio de inventario.");
-        this.sesion = Objects.requireNonNull(sesion, "Falta la sesión actual.");
+        this.ventana = Objects.requireNonNull(ventana);
+        this.catalogo = Objects.requireNonNull(catalogo);
+        this.inventario = Objects.requireNonNull(inventario);
+        this.sesion = Objects.requireNonNull(sesion);
 
         this.ventana.addEventHandler(WindowEvent.WINDOW_CLOSE_REQUEST, evento -> {
             if (operacionEnCurso()){
@@ -59,54 +74,55 @@ public class NavegadorVistas{
         });
     }
 
-    // Abre la pantalla inicial, que será pública.
+    // Abre la pantalla inicial pública.
     public void mostrarInicio(){
         abrir("seguridad/inicio.fxml");
     }
 
-    // Abre el login sin rol preseleccionado para mantener compatibilidad.
+    // Abre el login administrativo sin rol preseleccionado.
     public void mostrarLogin(){
-        if (ventana != null){
-            ventana.getProperties().remove(claveRolLogin);
-        }
+        exigirVentana();
+        ventana.getProperties().remove(claveRolLogin);
         abrir("seguridad/login.fxml");
     }
 
-    // Abre el login para el rol administrativo que el usuario eligió.
+    // Abre el login con el rol administrativo elegido.
     public void mostrarLogin(Rol rolEsperado){
-        Objects.requireNonNull(rolEsperado, "Falta el rol esperado.");
-
+        Objects.requireNonNull(rolEsperado);
         if (rolEsperado != Rol.ADMIN && rolEsperado != Rol.STOCK_MANAGER){
-            throw new IllegalArgumentException("El login con contraseña solo admite ADMIN o STOCK_MANAGER.");
-        }
-        if (ventana == null){
-            throw new IllegalStateException("Primero debe configurarse el navegador.");
+            throw new IllegalArgumentException("El login solo admite ADMIN o STOCK_MANAGER.");
         }
 
+        exigirVentana();
         ventana.getProperties().put(claveRolLogin, rolEsperado);
         abrir("seguridad/login.fxml");
     }
 
-    // Devuelve el rol elegido antes de abrir el login o null si no se eligió.
+    // Devuelve el rol elegido antes de abrir el login.
     public Rol getRolLoginSeleccionado(){
-        if (ventana == null){
-            throw new IllegalStateException("Primero debe configurarse el navegador.");
-        }
-
+        exigirVentana();
         Object valor = ventana.getProperties().get(claveRolLogin);
         return valor instanceof Rol rol ? rol : null;
     }
 
-    // Abre el menú para cualquier sesión activa.
+    // Abre el menú de la sesión actual.
     public void mostrarMenu(){
         abrir("seguridad/menu.fxml");
     }
 
-    // Cierra la sesión y vuelve a la pantalla inicial.
+    // Abre la vista de inventario.
+    public void mostrarInventario(){
+        abrir("inventario/inventario.fxml");
+    }
+
+    // Abre los reportes financieros.
+    public void mostrarReportes(){
+        abrir("reportes/reportes.fxml");
+    }
+
+    // Cierra la sesión y vuelve al inicio.
     public void cerrarSesionYMostrarInicio(){
-        if (ventana == null || sesion == null){
-            throw new IllegalStateException("Primero debe configurarse el navegador.");
-        }
+        exigirVentana();
         if (operacionEnCurso()){
             throw new IllegalStateException("Espere a que termine la operación actual.");
         }
@@ -117,109 +133,63 @@ public class NavegadorVistas{
         mostrarInicio();
     }
 
-    // Resuelve y abre una vista aplicando sus permisos de acceso.
+    // Resuelve y abre una vista aplicando sus permisos.
     public void abrir(String vista){
         abrirVista(resolverRuta(vista), null);
     }
 
-    // Abre la lista de productos, restringida al administrador.
+    // Abre la lista de productos.
     public void mostrarProductos(){
         abrir("catalogo/productos.fxml");
     }
 
-    // Abre el editor de producto y le entrega el id que debe cargar.
+    // Abre el editor de producto y entrega el id que debe cargar.
     public void mostrarProductoEditor(long productoId){
-        abrirVista(resolverRuta("catalogo/producto-editor.fxml"),
-                controlador -> {
-                    if (!(controlador instanceof ProductoEditorController editor)){
-                        throw new IllegalStateException("El FXML de producto debe usar ProductoEditorController.");
-                    }
-                    editor.mostrarProducto(productoId);
-                }
-        );
-    }
-
-    // Mantiene el acceso existente para abrir el editor de un producto.
-    public void abrirProducto(long productoId){
-        mostrarProductoEditor(productoId);
+        abrirVista(resolverRuta("catalogo/producto-editor.fxml"), controlador -> ((ProductoEditorController) controlador).mostrarProducto(productoId));
     }
 
     // Abre un pedido y entrega su id al controlador.
     public void abrirPedido(long pedidoId){
         validarPedidos();
         if (pedidoId < 0){
-            throw new IllegalArgumentException("El ID no puede ser negativo.");
+            throw new IllegalArgumentException("El id no puede ser negativo.");
         }
-
         if (pedidoId > 0){
-            guardarPedidoId(pedidoId);
-        } else {
+            ventana.getProperties().put(clavePedidoId, pedidoId);
+        } else{
             ventana.getProperties().remove(clavePedidoId);
         }
 
-        abrirVista(
-                resolverRuta("pedidos/toma_pedido.fxml"),
-                controlador -> ((TomaPedidosController) controlador).mostrarPedido(pedidoId)
-        );
+        abrirVista(resolverRuta("pedidos/toma_pedido.fxml"), controlador -> ((TomaPedidosController) controlador).mostrarPedido(pedidoId));
     }
 
-    // Abre la pantalla de cobro del pedido indicado.
+    // Abre la pantalla de cobro para el pedido indicado.
     public void abrirCobro(long pedidoId){
         validarPedidos();
-        guardarPedidoId(pedidoId);
+        if (pedidoId <= 0) {
+            throw new IllegalArgumentException("El id del pedido debe ser positivo.");
+        }
+        ventana.getProperties().put(clavePedidoId, pedidoId);
 
         abrirVista(resolverRuta("pedidos/Cobro.fxml"), controlador -> ((CobroController) controlador).mostrarPedido(pedidoId));
     }
 
-    // Abre la lista de pedidos activos para el cajero.
+    // Abre la lista de pedidos activos.
     public void mostrarPedidosActivos(){
         abrir("pedidos/pedidos_activos.fxml");
     }
 
-    // Abre el recibo generado para un pedido.
+    // Abre el recibo de una venta.
     public void mostrarRecibo(Recibo recibo){
         validarPedidos();
-        Objects.requireNonNull(recibo, "El recibo no puede ser null.");
+        Objects.requireNonNull(recibo);
 
-        abrirVista(resolverRuta("pedidos/recibo.fxml"),
-                controlador -> {
-                    if (!(controlador instanceof ReciboController reciboController)){
-                        throw new IllegalStateException("El FXML de recibo debe usar ReciboController.");
-                    }
-                    reciboController.mostrarRecibo(recibo);
-                }
-        );
+        abrirVista(resolverRuta("pedidos/recibo.fxml"), controlador -> ((ReciboController) controlador).mostrarRecibo(recibo));
     }
 
-    // Devuelve el id guardado para la vista actual de pedido o cobro.
-    public long getPedidoIdActual(){
-        if (ventana == null){
-            throw new IllegalStateException("Primero debe configurarse el navegador.");
-        }
-
-        Object valor = ventana.getProperties().get(clavePedidoId);
-        if (!(valor instanceof Long pedidoId)){
-            throw new IllegalStateException("No hay un id de pedido guardado en la navegación.");
-        }
-        return pedidoId;
-    }
-
-    // Guarda el id del pedido para que la siguiente vista pueda recuperarlo.
-    private void guardarPedidoId(long pedidoId){
-        if (pedidoId <= 0){
-            throw new IllegalArgumentException("El id del pedido debe ser positivo.");
-        }
-        if (ventana == null){
-            throw new IllegalStateException("Primero debe llamarse a configurar(...).");
-        }
-
-        ventana.getProperties().put(clavePedidoId, pedidoId);
-    }
-
-    // Convierte la ruta corta de una vista en la ruta del recurso FXML.
+    // Resuelve una ruta corta al recurso FXML correspondiente.
     private String resolverRuta(String vista){
-        Objects.requireNonNull(vista, "La ruta de la vista no puede ser null.");
-
+        Objects.requireNonNull(vista);
         String ruta = vista.replace('\\', '/');
         if (ruta.startsWith("/")){
             ruta = ruta.substring(1);
@@ -230,11 +200,10 @@ public class NavegadorVistas{
         if (!ruta.endsWith(".fxml")){
             ruta += ".fxml";
         }
-
         return rutaBase + ruta;
     }
 
-    // Aplica la matriz de permisos antes de cargar cualquier vista.
+    // Valida el rol permitido para cada grupo de vistas.
     private void validarAccesoVista(String ruta){
         if (!ruta.startsWith(rutaBase)){
             throw new IllegalArgumentException("La vista está fuera de la carpeta permitida.");
@@ -242,53 +211,37 @@ public class NavegadorVistas{
 
         String vista = ruta.substring(rutaBase.length());
 
-        if (vista.equals("seguridad/inicio.fxml") || vista.equals("seguridad/login.fxml")){
+        if (vista.equals("seguridad/inicio.fxml")
+                || vista.equals("seguridad/login.fxml")){
             return;
         }
-
         if (vista.equals("seguridad/menu.fxml")){
-            exigirSesionActiva();
+            sesion.exigirAlgunoDe(Rol.ADMIN, Rol.STOCK_MANAGER, Rol.CAJERO);
             return;
         }
-
         if (vista.startsWith("pedidos/")){
             validarPedidos();
             return;
         }
-
         if (vista.startsWith("catalogo/")){
             sesion.exigirRol(Rol.ADMIN);
             return;
         }
-
         if (vista.startsWith("inventario/")){
             sesion.exigirAlgunoDe(Rol.ADMIN, Rol.STOCK_MANAGER);
             return;
         }
-
-        if (vista.startsWith("reportes/") || vista.startsWith("ventas/") || vista.startsWith("compras/")){
+        if (vista.startsWith("reportes/") || vista.startsWith("ventas/") || vista.startsWith("compras/")) {
             sesion.exigirRol(Rol.ADMIN);
             return;
         }
 
-        throw new IllegalArgumentException("La vista no tiene una regla de acceso: " + vista);
+        throw new IllegalArgumentException("No hay regla de acceso para: " + vista);
     }
 
-    // Impide mostrar el menú cuando no existe una sesión activa.
-    private void exigirSesionActiva(){
-        if (sesion == null){
-            throw new IllegalStateException("Primero debe configurarse la sesión.");
-        }
-
-        sesion.exigirAlgunoDe(Rol.ADMIN, Rol.STOCK_MANAGER, Rol.CAJERO);
-    }
-
-    // Carga el FXML, construye su controlador y muestra la vista autorizada.
+    // Carga el FXML y muestra la vista después de validar acceso.
     private void abrirVista(String ruta, Consumer<Object> configurarControlador){
-        if (ventana == null){
-            throw new IllegalStateException("Primero debe llamarse a configurar(...) con la ventana principal.");
-        }
-
+        exigirVentana();
         validarAccesoVista(ruta);
 
         if (operacionEnCurso()){
@@ -303,11 +256,10 @@ public class NavegadorVistas{
         try{
             FXMLLoader loader = new FXMLLoader(recurso);
             loader.setControllerFactory(this::crearControlador);
-
             Parent raiz = loader.load();
             Object controlador = loader.getController();
 
-            if (configurarControlador != null){
+            if (configurarControlador != null) {
                 configurarControlador.accept(controlador);
             }
 
@@ -318,8 +270,23 @@ public class NavegadorVistas{
         }
     }
 
-    // Crea los controladores existentes que requieren servicios o sesión.
+    // Construye los controladores con sus dependencias compartidas.
     private Object crearControlador(Class<?> tipo){
+        if (tipo == inicioController.class){
+            return new inicioController(sesion, this);
+        }
+        if (tipo == loginController.class){
+            return new loginController(autenticacion, sesion, this);
+        }
+        if (tipo == menuController.class){
+            return new menuController(sesion, this);
+        }
+        if (tipo == inventarioController.class){
+            return new inventarioController(inventario, sesion, this);
+        }
+        if (tipo == reportesController.class){
+            return new reportesController(reportes, sesion, this);
+        }
         if (tipo == PedidosActivosController.class){
             return new PedidosActivosController(pedidos, sesion, this);
         }
@@ -351,18 +318,23 @@ public class NavegadorVistas{
 
     // Comprueba que el usuario sea cajero y que los servicios de pedidos estén listos.
     private void validarPedidos(){
-        if (ventana == null || sesion == null || pedidos == null || cobros == null) {
-            throw new IllegalStateException("Primero deben configurarse la navegación y los servicios de pedidos.");
+        if (pedidos == null || cobros == null){
+            throw new IllegalStateException("Los servicios de pedidos no están configurados.");
         }
-
         sesion.exigirRol(Rol.CAJERO);
-
         if (operacionEnCurso()){
             throw new IllegalStateException("Espere a que termine la operación actual.");
         }
     }
 
-    // Detecta si la vista actual está bloqueada mientras ocurre una operación.
+    // Comprueba que el navegador ya tenga una ventana configurada.
+    private void exigirVentana(){
+        if (ventana == null) {
+            throw new IllegalStateException("Primero debe configurarse el navegador.");
+        }
+    }
+
+    // Detecta si la vista actual está bloqueada por una operación.
     private boolean operacionEnCurso(){
         return ventana != null && ventana.getScene() != null && ventana.getScene().getRoot().isDisabled();
     }
