@@ -5,37 +5,74 @@ import cr.ac.una.est.programacion03proyecto02.logic.model.seguridad.enums.Rol;
 
 import java.util.Objects;
 
-/**
- * Usuario en sesion. La fabrica de controladores reparte una unica instancia
- * compartida; exigirRol es la comprobacion real, ocultar un boton no lo sustituye.
- */
-public class SesionActual {
+public class SesionActual{
+
+    private static final String hashCajeroTemporal = "sesion-cajero-temporal-sin-clave";
 
     private Usuario usuario;
 
-    public void iniciar(Usuario usuario) {
+    // Inicia la sesión con un usuario existente y activo.
+    public void iniciar(Usuario usuario){
         Objects.requireNonNull(usuario, "No se puede iniciar sesion sin usuario.");
-        if (!usuario.isActivo()) {
+        if (!usuario.isActivo()){
             throw new SecurityException("No se puede iniciar sesion con un usuario inactivo.");
         }
         this.usuario = usuario;
     }
 
-    public void cerrar() {
+    // Crea la identidad temporal de cajero usando el nombre ingresado para auditoría.
+    public void iniciarComoCajero(String nombreCajero){
+        Objects.requireNonNull(nombreCajero, "Falta el nombre del cajero.");
+
+        String nombreLimpio = nombreCajero.trim();
+        if (nombreLimpio.isEmpty() || nombreLimpio.length() > 100){
+            throw new IllegalArgumentException("El nombre del cajero debe tener entre 1 y 100 caracteres.");
+        }
+
+        Usuario cajero = new Usuario(0, nombreLimpio, hashCajeroTemporal, Rol.CAJERO, true);
+
+        iniciar(cajero);
+    }
+
+    // Cierra la sesión actual.
+    public void cerrar(){
         this.usuario = null;
     }
 
-    public Usuario getUsuario() {
+    // Devuelve el usuario de la sesión o null cuando no hay una sesión activa.
+    public Usuario getUsuario(){
         return usuario;
     }
 
-    public void exigirRol(Rol rol) {
-        Objects.requireNonNull(rol, "Falta el rol exigido.");
-        if (usuario == null) {
+    // Comprueba que la sesión tenga exactamente el rol solicitado.
+    public void exigirRol(Rol rol){
+        exigirAlgunoDe(rol);
+    }
+
+    // Comprueba que la sesión tenga uno de los roles permitidos.
+    public void exigirAlgunoDe(Rol... roles){ //los "puntos suspensivos" son varargs que permiten que la clase reciba uno, multiples o hasta 0 roles.
+        Objects.requireNonNull(roles, "Faltan los roles permitidos.");
+        if (roles.length == 0){
+            throw new IllegalArgumentException("Debe indicarse al menos un rol permitido.");
+        }
+
+        for (Rol rol : roles){
+            Objects.requireNonNull(rol, "Uno de los roles permitidos es null.");
+        }
+
+        if (usuario == null){
             throw new IllegalStateException("No hay una sesion iniciada.");
         }
-        if (usuario.getRol() != rol) {
-            throw new SecurityException("La accion requiere el rol " + rol + ".");
+        if (!usuario.isActivo()){
+            throw new SecurityException("La sesion pertenece a un usuario inactivo.");
         }
+
+        for (Rol rol : roles) {
+            if (usuario.getRol() == rol){
+                return;
+            }
+        }
+
+        throw new SecurityException("La sesion no tiene ninguno de los roles permitidos.");
     }
 }

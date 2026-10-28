@@ -6,5 +6,9 @@ module cr.ac.una.est.programacion03proyecto {
 
     opens cr.ac.una.est.programacion03proyecto02.controller.catalogo to javafx.fxml;
     opens cr.ac.una.est.programacion03proyecto02.controller.pedidos to javafx.fxml;
+    opens cr.ac.una.est.programacion03proyecto02.controller.seguridad to javafx.fxml;
+    opens cr.ac.una.est.programacion03proyecto02.controller.inventario to javafx.fxml;
+    opens cr.ac.una.est.programacion03proyecto02.controller.reportes to javafx.fxml;
+
     exports cr.ac.una.est.programacion03proyecto02.app;
 }

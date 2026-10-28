@@ -10,11 +10,14 @@ import java.util.List;
 
 public interface ICatalogoService {
 
-    // Consulta para el catálogo que se muestra al cliente.
-    Producto obtenerProducto(
-            long productoId,
-            Connection conexion
-    ) throws SQLException;
+    // Consulta el producto y calcula la disponibilidad de su receta base.
+    Producto obtenerProducto(long productoId, Connection conexion) throws SQLException;
+
+    // Comprueba la disponibilidad de una combinación usando una conexión propia.
+    boolean hayStockSuficientePara(long productoId, List<Long> opcionesId, int cantidad) throws SQLException;
+
+    // Comprueba la disponibilidad dentro de una conexión compartida.
+    boolean hayStockSuficientePara(long productoId, List<Long> opcionesId, int cantidad, Connection conexion) throws SQLException;
 
     List<Categoria> listarCategorias() throws SQLException;
 
@@ -22,20 +25,15 @@ public interface ICatalogoService {
 
     List<Producto> listarProductosActivos() throws SQLException;
 
-    List<OpcionProducto> listarOpcionesDeProducto(
-            long productoId
-    ) throws SQLException;
+    List<OpcionProducto> listarOpcionesDeProducto(long productoId) throws SQLException;
 
-    // Operaciones administrativas de categorías.
     List<Categoria> listarCategoriasAdministracion() throws SQLException;
 
     void guardarCategoria(Categoria categoria) throws SQLException;
 
-    // Consulta administrativa: incluye productos y opciones inactivos para editarlos.
     Producto obtenerProducto(long productoId) throws SQLException;
 
     void guardarProducto(Producto producto) throws SQLException;
 
     void desactivarProducto(long productoId) throws SQLException;
 }
-
