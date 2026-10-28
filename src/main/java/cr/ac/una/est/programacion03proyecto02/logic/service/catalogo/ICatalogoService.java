@@ -13,7 +13,10 @@ public interface ICatalogoService {
     // Consulta el producto y calcula la disponibilidad de su receta base.
     Producto obtenerProducto(long productoId, Connection conexion) throws SQLException;
 
-    // Comprueba stock para la receta base y las opciones seleccionadas.
+    // Comprueba la disponibilidad de una combinación usando una conexión propia.
+    boolean hayStockSuficientePara(long productoId, List<Long> opcionesId, int cantidad) throws SQLException;
+
+    // Comprueba la disponibilidad dentro de una conexión compartida.
     boolean hayStockSuficientePara(long productoId, List<Long> opcionesId, int cantidad, Connection conexion) throws SQLException;
 
     List<Categoria> listarCategorias() throws SQLException;
