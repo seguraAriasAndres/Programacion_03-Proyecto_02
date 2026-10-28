@@ -5,6 +5,8 @@ import cr.ac.una.est.programacion03proyecto02.logic.service.catalogo.catalogoSer
 import cr.ac.una.est.programacion03proyecto02.logic.service.inventario.inventarioService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.pedidos.CobroService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.pedidos.PedidoService;
+import cr.ac.una.est.programacion03proyecto02.logic.service.reportes.ReporteService;
+import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.AutenticacionService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.SesionActual;
 import cr.ac.una.est.programacion03proyecto02.persistence.connection.ConexionDB;
 import cr.ac.una.est.programacion03proyecto02.persistence.dao.catalogo.categoriaDAO;
@@ -13,6 +15,7 @@ import cr.ac.una.est.programacion03proyecto02.persistence.dao.inventario.ingredi
 import cr.ac.una.est.programacion03proyecto02.persistence.dao.inventario.movimientoStockDAO;
 import cr.ac.una.est.programacion03proyecto02.persistence.dao.pedidos.ReciboDAO;
 import cr.ac.una.est.programacion03proyecto02.view.navigation.NavegadorVistas;
+
 import javafx.application.Application;
 import javafx.concurrent.Task;
 import javafx.scene.Scene;
@@ -22,7 +25,7 @@ import javafx.stage.Stage;
 
 public class HelloApplication extends Application{
 
-    private record serviciosAplicacion(inventarioService inventario, catalogoService catalogo, PedidoService pedidos, CobroService cobros) {
+    private record serviciosAplicacion(inventarioService inventario, catalogoService catalogo, PedidoService pedidos, CobroService cobros){
     }
 
     // Prepara los servicios en segundo plano y luego abre la pantalla inicial.
@@ -58,12 +61,12 @@ public class HelloApplication extends Application{
 
             navegador.configurar(stage, servicios.catalogo(), servicios.inventario(), sesion);
             navegador.configurarPedidos(servicios.pedidos(), servicios.cobros());
+            navegador.configurarPantallas(new AutenticacionService(), new ReporteService(servicios.pedidos()));
 
             try{
                 navegador.mostrarInicio();
             } catch (RuntimeException error){
-                estado.setText("Los servicios están listos, pero no se pudo abrir la pantalla inicial. "
-                               + "Verifique que exista seguridad/inicio.fxml y que esté configurada.");
+                estado.setText("Los servicios están listos, pero no se pudo abrir la pantalla inicial. " + "Verifique que exista seguridad/inicio.fxml y esté configurada.");
             }
         });
 
