@@ -11,7 +11,7 @@ public class SesionActual{
 
     private Usuario usuario;
 
-    // Inicia una sesión con un usuario existente y activo.
+    // Inicia la sesión con un usuario existente y activo.
     public void iniciar(Usuario usuario){
         Objects.requireNonNull(usuario, "No se puede iniciar sesion sin usuario.");
         if (!usuario.isActivo()){
@@ -20,7 +20,7 @@ public class SesionActual{
         this.usuario = usuario;
     }
 
-    // Crea una identidad temporal de cajero para usar su nombre en los registros.
+    // Crea la identidad temporal de cajero usando el nombre ingresado para auditoría.
     public void iniciarComoCajero(String nombreCajero){
         Objects.requireNonNull(nombreCajero, "Falta el nombre del cajero.");
 
@@ -39,20 +39,40 @@ public class SesionActual{
         this.usuario = null;
     }
 
-    // Devuelve el usuario asociado a la sesión o null si no hay sesión.
+    // Devuelve el usuario de la sesión o null cuando no hay una sesión activa.
     public Usuario getUsuario(){
         return usuario;
     }
 
-    // Verifica que exista una sesión y que tenga el rol solicitado.
+    // Comprueba que la sesión tenga exactamente el rol solicitado.
     public void exigirRol(Rol rol){
-        Objects.requireNonNull(rol, "Falta el rol exigido.");
+        exigirAlgunoDe(rol);
+    }
+
+    // Comprueba que la sesión tenga uno de los roles permitidos.
+    public void exigirAlgunoDe(Rol... roles){ //los "puntos suspensivos" son varargs que permiten que la clase reciba uno, multiples o hasta 0 roles.
+        Objects.requireNonNull(roles, "Faltan los roles permitidos.");
+        if (roles.length == 0){
+            throw new IllegalArgumentException("Debe indicarse al menos un rol permitido.");
+        }
+
+        for (Rol rol : roles){
+            Objects.requireNonNull(rol, "Uno de los roles permitidos es null.");
+        }
+
         if (usuario == null){
             throw new IllegalStateException("No hay una sesion iniciada.");
         }
-        if (usuario.getRol() != rol){
-            throw new SecurityException("La accion requiere el rol " + rol + ".");
+        if (!usuario.isActivo()){
+            throw new SecurityException("La sesion pertenece a un usuario inactivo.");
         }
+
+        for (Rol rol : roles) {
+            if (usuario.getRol() == rol){
+                return;
+            }
+        }
+
+        throw new SecurityException("La sesion no tiene ninguno de los roles permitidos.");
     }
-    
 }
