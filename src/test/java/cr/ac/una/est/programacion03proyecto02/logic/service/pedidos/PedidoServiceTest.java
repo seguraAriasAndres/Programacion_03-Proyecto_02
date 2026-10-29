@@ -90,6 +90,7 @@ class PedidoServiceTest {
                     "CREATE TEMPORARY TABLE linea_pedido_opcion("
                             + "linea_pedido_id BIGINT,"
                             + "opcion_producto_id BIGINT,"
+                            + "cantidad INT NOT NULL DEFAULT 1,"
                             + "PRIMARY KEY(linea_pedido_id,opcion_producto_id)"
                             + ") ENGINE=InnoDB"
             );
@@ -275,6 +276,22 @@ class PedidoServiceTest {
         return new PedidoDAO(real).buscarBloqueado(pedido.getIdPedido());
     }
 
+    @Test void creaPedidoConPrimeraLineaEnUnaSolaTransaccion()throws Exception {
+        Pedido creado=servicio.crearConLinea("Cliente nuevo",productoId,List.of(opcionId),2,"cajero");
+        assertTrue(creado.getIdPedido()>0);assertEquals(1,creado.getLineas().size());
+        assertTrue(creado.getLineas().getFirst().getId()>0);
+        assertEquals(1,commits);assertEquals(1,aperturas);
+        assertEquals(1,new PedidoDAO(real).buscarBloqueado(creado.getIdPedido()).getLineas().size());
+    }
+
+    @Test void faltaDeStockNoDejaUnBorradorVacioNiUnaLineaParcial()throws Exception {
+        int cantidad;
+        try(var s=real.createStatement();var r=s.executeQuery("SELECT COUNT(*) FROM pedido")){r.next();cantidad=r.getInt(1);}
+        assertThrows(IllegalArgumentException.class,()->servicio.crearConLinea("Cliente",productoId,List.of(opcionId),100000,"cajero"));
+        try(var s=real.createStatement();var r=s.executeQuery("SELECT COUNT(*) FROM pedido")){r.next();assertEquals(cantidad,r.getInt(1));}
+        assertEquals(0,commits);assertEquals(1,rollbacks);
+    }
+
     @Test
     void guardaLineaYOpcionesYPublicaCacheDespuesDelCommit() throws Exception {
         antesCommit = () -> assertTrue(
@@ -417,7 +434,7 @@ class PedidoServiceTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> servicio.agregarLinea(
-                        pedido.getIdPedido(), productoId, null, 1, "cajero"
+                        pedido.getIdPedido(), productoId, (List<Long>)null, 1, "cajero"
                 )
         );
         assertEquals(0, aperturas);
@@ -773,6 +790,18 @@ class PedidoServiceTest {
                                 .equals("Nombre actualizado"))
         );
         assertNull(servicio.obtener(Long.MAX_VALUE));
+    }
+
+    @Test void cantidadesDeExtrasPersistenYSeDescuentanYRestituyenAlConfirmarYCancelar()throws Exception {
+        servicio.agregarLinea(pedido.getIdPedido(),productoId,Map.of(opcionId,3),2,"cajero");
+        Pedido recuperado=servicio.obtener(pedido.getIdPedido());
+        assertEquals(Map.of(opcionId,3),recuperado.getLineas().getFirst().getCantidadesOpciones());
+        assertEquals(new BigDecimal("2015.00"),recuperado.calcularTotal());
+        servicio.confirmar(pedido.getIdPedido(),"cajero");
+        assertEquals(new BigDecimal("8.600000"),stock(1));
+        assertEquals(new BigDecimal("9.900000"),stock(2));
+        servicio.cancelar(pedido.getIdPedido(),"cajero");
+        assertEquals(new BigDecimal("10.000000"),stock(1));assertEquals(new BigDecimal("10.000000"),stock(2));
     }
 
     private BigDecimal stock(long ingredienteId) throws Exception {

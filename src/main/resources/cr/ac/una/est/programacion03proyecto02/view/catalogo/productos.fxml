@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import cr.ac.una.est.programacion03proyecto02.view.personalizacion.BotonTema?>
+
 <?import cr.ac.una.est.programacion03proyecto02.view.iconos.Icono?>
 
 <?import javafx.geometry.Insets?>
@@ -24,9 +26,11 @@
         <VBox spacing="12.0">
             <padding>
                 <Insets top="0.0" right="0.0" bottom="8.0" left="0.0"/>
-            </padding>
-
-            <Label text="Productos" styleClass="page-title"/>
+            </padding>            <HBox alignment="CENTER_LEFT" spacing="12">
+                <Label text="Productos" styleClass="page-title"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <BotonTema fx:id="btnTema"/>
+            </HBox>
 
             <HBox spacing="10.0" alignment="CENTER_LEFT" styleClass="toolbar">
                 <TextField fx:id="txtBuscar" promptText="Buscar por nombre" prefWidth="240.0"/>

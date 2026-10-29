@@ -17,6 +17,20 @@ import java.util.TreeMap;
 import java.time.LocalDateTime;
 
 public class inventarioService implements iinventarioService {
+    @Override
+    public Map<Long,Boolean> disponibilidades(Map<Long,Map<Long,Double>> recetas,Connection conexion) throws SQLException {
+        Map<Long,ingrediente> stock=new java.util.HashMap<>();
+        for(ingrediente item:ingredientes.listar(conexion))stock.put(item.getId(),item);
+        Map<Long,Boolean> resultado=new java.util.HashMap<>();
+        for(var entrada:recetas.entrySet()) {
+            Map<Long,Double> requeridos=validarCantidades(entrada.getValue(),true);
+            resultado.put(entrada.getKey(),requeridos.entrySet().stream().allMatch(r->{
+                ingrediente i=stock.get(r.getKey());
+                return i!=null && i.isActivo() && java.math.BigDecimal.valueOf(i.getCantidadDisponible()).compareTo(java.math.BigDecimal.valueOf(r.getValue()))>=0;
+            }));
+        }
+        return Map.copyOf(resultado);
+    }
 
     private final ConexionDB conexionDB;
     private final ingredienteDAO ingredientes;

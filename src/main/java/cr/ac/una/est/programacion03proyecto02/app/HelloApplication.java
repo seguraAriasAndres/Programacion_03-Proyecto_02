@@ -8,6 +8,8 @@ import cr.ac.una.est.programacion03proyecto02.logic.service.pedidos.PedidoServic
 import cr.ac.una.est.programacion03proyecto02.logic.service.reportes.ReporteService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.AutenticacionService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.SesionActual;
+import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.UsuariosService;
+import cr.ac.una.est.programacion03proyecto02.persistence.dao.seguridad.UsuarioDAO;
 import cr.ac.una.est.programacion03proyecto02.persistence.connection.ConexionDB;
 import cr.ac.una.est.programacion03proyecto02.persistence.dao.catalogo.categoriaDAO;
 import cr.ac.una.est.programacion03proyecto02.persistence.dao.catalogo.productoDAO;
@@ -15,6 +17,7 @@ import cr.ac.una.est.programacion03proyecto02.persistence.dao.inventario.ingredi
 import cr.ac.una.est.programacion03proyecto02.persistence.dao.inventario.movimientoStockDAO;
 import cr.ac.una.est.programacion03proyecto02.persistence.dao.pedidos.ReciboDAO;
 import cr.ac.una.est.programacion03proyecto02.view.navigation.NavegadorVistas;
+import cr.ac.una.est.programacion03proyecto02.view.personalizacion.MarcaVentana;
 
 import javafx.application.Application;
 import javafx.concurrent.Task;
@@ -24,6 +27,10 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 public class HelloApplication extends Application{
+    @Override
+    public void stop(){
+        ConexionDB.cerrarPool();
+    }
 
     private record serviciosAplicacion(inventarioService inventario, catalogoService catalogo, PedidoService pedidos, CobroService cobros){
     }
@@ -32,6 +39,7 @@ public class HelloApplication extends Application{
     @Override
     public void start(Stage stage){
         stage.setTitle("Restaurante");
+        MarcaVentana.aplicar(stage, MarcaVentana.desdeConfiguracion());
 
         Label estado = new Label("Preparando servicios...");
         estado.setWrapText(true);
@@ -43,7 +51,7 @@ public class HelloApplication extends Application{
         NavegadorVistas navegador = new NavegadorVistas();
 
         Task<serviciosAplicacion> tarea = new Task<>(){
-            
+
             @Override
             protected serviciosAplicacion call() throws Exception{
                 inventarioService inventario = new inventarioService(conexiones, new ingredienteDAO(), new movimientoStockDAO());
@@ -61,7 +69,9 @@ public class HelloApplication extends Application{
 
             navegador.configurar(stage, servicios.catalogo(), servicios.inventario(), sesion);
             navegador.configurarPedidos(servicios.pedidos(), servicios.cobros());
-            navegador.configurarPantallas(new AutenticacionService(), new ReporteService(servicios.pedidos()));
+            UsuarioDAO usuarios = new UsuarioDAO(conexiones);
+            navegador.configurarPantallas(new AutenticacionService(usuarios), new ReporteService(servicios.pedidos()));
+            navegador.configurarUsuarios(new UsuariosService(usuarios,sesion));
 
             try{
                 navegador.mostrarInicio();

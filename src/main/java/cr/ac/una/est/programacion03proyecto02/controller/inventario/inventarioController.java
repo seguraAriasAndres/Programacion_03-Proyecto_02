@@ -1,6 +1,8 @@
 package cr.ac.una.est.programacion03proyecto02.controller.inventario;
 
 import cr.ac.una.est.programacion03proyecto02.logic.model.inventario.ingrediente;
+import cr.ac.una.est.programacion03proyecto02.logic.model.inventario.consumoVenta;
+import cr.ac.una.est.programacion03proyecto02.logic.model.inventario.devolucionVenta;
 import cr.ac.una.est.programacion03proyecto02.logic.model.inventario.merma;
 import cr.ac.una.est.programacion03proyecto02.logic.model.inventario.movimientoStock;
 import cr.ac.una.est.programacion03proyecto02.logic.model.inventario.reabastecimiento;
@@ -12,6 +14,9 @@ import cr.ac.una.est.programacion03proyecto02.view.navigation.NavegadorVistas;
 
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.scene.control.Button;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.CheckBox;
@@ -45,6 +50,7 @@ public class inventarioController{
     @FXML private TableColumn<ingrediente, Number> colIngredienteId;
     @FXML private TableColumn<ingrediente, String> colIngredienteNombre;
     @FXML private TableColumn<ingrediente, Number> colIngredienteDisponible;
+    @FXML private TableColumn<ingrediente, String> colIngredienteUnidad;
     @FXML private TableColumn<ingrediente, Number> colIngredienteMinimo;
     @FXML private TableColumn<ingrediente, Boolean> colIngredienteActiva;
     @FXML private TableView<movimientoStock> tblMovimientos;
@@ -65,6 +71,10 @@ public class inventarioController{
     @FXML private Label lblMensaje;
     @FXML private TabPane tabAcciones;
     @FXML private Tab tabEdicion;
+    @FXML private Button btnBajoMinimo;
+    private final ObservableList<ingrediente> ingredientesCargados = FXCollections.observableArrayList();
+    private final FilteredList<ingrediente> ingredientesFiltrados = new FilteredList<>(ingredientesCargados);
+    private boolean soloBajoMinimo;
 
     // Ingrediente seleccionado en la tabla; null cuando se crea uno nuevo.
     private ingrediente seleccionado;
@@ -82,10 +92,16 @@ public class inventarioController{
         lblMensaje.managedProperty().bind(lblMensaje.visibleProperty());
 
         sesion.exigirAlgunoDe(Rol.ADMIN, Rol.STOCK_MANAGER);
+        tblIngredientes.setItems(ingredientesFiltrados);
 
         colIngredienteId.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getId()));
         colIngredienteNombre.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getNombre()));
         colIngredienteDisponible.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getCantidadDisponible()));
+        colIngredienteUnidad.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(switch(celda.getValue().getUnidadMedida()) {
+            case UNIDAD -> "Unidades";
+            case GRAMO -> "Gramos";
+            case MILILITRO -> "Mililitros";
+        }));
         colIngredienteDisponible.setCellFactory(columna -> new TableCell<>() {
             @Override
             protected void updateItem(Number cantidad, boolean vacia) {
@@ -109,8 +125,7 @@ public class inventarioController{
         DateTimeFormatter formatoFecha = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
         colMovFecha.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getFecha().format(formatoFecha)));
         colMovIngrediente.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getIngrediente().getNombre()));
-        colMovTipo.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(
-                celda.getValue().variacion() > 0 ? "Reabastecimiento" : "Merma"));
+        colMovTipo.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(tipoMovimiento(celda.getValue())));
         colMovCantidad.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getCantidad()));
         colMovUsuario.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getUsuario()));
         colMovMotivo.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getMotivo()));
@@ -149,12 +164,21 @@ public class inventarioController{
 
         dpDesde.setValue(LocalDate.now().withDayOfMonth(1));
         dpHasta.setValue(LocalDate.now());
+        mostrarEnFormulario(null);
         cargarDatos();
     }
 
     // Consulta ingredientes y movimientos dentro del rango indicado.
     @FXML
     private void onActualizar(){
+        try {
+            // La pestaña oculta aún puede no haber creado sus editores visuales.
+            if(dpDesde.getScene()!=null)dpDesde.commitValue();
+            if(dpHasta.getScene()!=null)dpHasta.commitValue();
+        } catch (java.time.DateTimeException error) {
+            lblMensaje.setText("Indique un rango de fechas válido.");
+            return;
+        }
         cargarDatos();
     }
 
@@ -233,27 +257,18 @@ public class inventarioController{
     // Filtra la tabla a los ingredientes activos por debajo de su mínimo.
     @FXML
     private void onBajoMinimo(){
-        Task<List<ingrediente>> tarea = new Task<>(){
-            @Override
-            protected List<ingrediente> call() throws Exception{
-                return inventario.listarBajoMinimo();
-            }
-        };
-
-        ejecutar(tarea, bajoMinimo -> {
-            tblIngredientes.setItems(FXCollections.observableArrayList(bajoMinimo));
-            lblMensaje.setText(bajoMinimo.isEmpty()
-                    ? "No hay ingredientes bajo el mínimo."
-                    : "Ingredientes bajo el mínimo: " + bajoMinimo.size() + ".");
-        });
+        soloBajoMinimo = !soloBajoMinimo;
+        ingredientesFiltrados.setPredicate(item -> !soloBajoMinimo || item.isActivo() && item.estaBajoMinimo());
+        btnBajoMinimo.setText(soloBajoMinimo ? "Ver todos" : "Ver bajo mínimo");
+        lblMensaje.setText(soloBajoMinimo ? "Mostrando ingredientes bajo el mínimo." : "Mostrando todos los ingredientes.");
     }
 
     // Copia el ingrediente seleccionado al formulario; null deja el formulario limpio.
     private void mostrarEnFormulario(ingrediente ingrediente){
         seleccionado = ingrediente;
         txtNombreIngrediente.setText(ingrediente == null ? "" : ingrediente.getNombre());
-        cmbUnidad.setValue(ingrediente == null ? null : ingrediente.getUnidadMedida());
-        txtStockMinimo.setText(ingrediente == null ? "" : String.valueOf(ingrediente.getStockMinimo()));
+        cmbUnidad.setValue(ingrediente == null ? unidadMedida.UNIDAD : ingrediente.getUnidadMedida());
+        txtStockMinimo.setText(ingrediente == null ? "0" : String.valueOf(ingrediente.getStockMinimo()));
         chkActivo.setSelected(ingrediente == null || ingrediente.isActivo());
     }
 
@@ -262,7 +277,7 @@ public class inventarioController{
         LocalDate desde = dpDesde.getValue();
         LocalDate hasta = dpHasta.getValue();
 
-        if (desde == null || hasta == null || desde.isAfter(hasta)){
+        if (desde == null || hasta == null || desde.isAfter(hasta) || hasta.equals(LocalDate.MAX)){
             lblMensaje.setText("Indique un rango de fechas válido.");
             return;
         }
@@ -277,7 +292,7 @@ public class inventarioController{
         };
 
         ejecutar(tarea, datos -> {
-            tblIngredientes.setItems(FXCollections.observableArrayList(datos.ingredientes()));
+            ingredientesCargados.setAll(datos.ingredientes());
             tblMovimientos.setItems(FXCollections.observableArrayList(datos.movimientos()));
             cmbIngrediente.setItems(FXCollections.observableArrayList(datos.ingredientes().stream().filter(ingrediente::isActivo).toList()));
             lblMensaje.setText("Inventario actualizado.");
@@ -346,5 +361,14 @@ public class inventarioController{
     }
 
     private record datosInventario(List<ingrediente> ingredientes, List<movimientoStock> movimientos){
+    }
+
+    // El signo no distingue las ventas de las mermas ni las devoluciones de las compras.
+    private String tipoMovimiento(movimientoStock movimiento) {
+        if (movimiento instanceof consumoVenta) return "Consumo por venta";
+        if (movimiento instanceof devolucionVenta) return "Devolución de venta";
+        if (movimiento instanceof reabastecimiento) return "Reabastecimiento";
+        if (movimiento instanceof merma) return "Merma";
+        return "Movimiento";
     }
 }

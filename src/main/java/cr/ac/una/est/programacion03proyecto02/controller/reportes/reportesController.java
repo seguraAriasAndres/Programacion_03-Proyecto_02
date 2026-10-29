@@ -83,10 +83,17 @@ public class reportesController{
     // Consulta los reportes financieros para el rango elegido.
     @FXML
     private void onConsultar(){
+        try {
+            dpDesde.commitValue();
+            dpHasta.commitValue();
+        } catch (java.time.DateTimeException error) {
+            lblMensaje.setText("Indique un rango de fechas válido.");
+            return;
+        }
         LocalDate desde = dpDesde.getValue();
         LocalDate hasta = dpHasta.getValue();
 
-        if (desde == null || hasta == null || desde.isAfter(hasta)){
+        if (desde == null || hasta == null || desde.isAfter(hasta) || hasta.equals(LocalDate.MAX)){
             lblMensaje.setText("Indique un rango de fechas válido.");
             return;
         }
@@ -97,8 +104,8 @@ public class reportesController{
         Task<datosReporte> tarea = new Task<>(){
             @Override
             protected datosReporte call() throws Exception{
-                return new datosReporte(reportes.ingresosBrutos(inicio, finExclusivo), reportes.porCategoria(inicio, finExclusivo),
-                                        reportes.ranking(inicio, finExclusivo), reportes.historial(inicio, finExclusivo));
+                ReporteService.Resumen datos=reportes.resumen(inicio,finExclusivo);
+                return new datosReporte(datos.ingresos(),datos.categorias(),datos.ranking(),datos.historial());
             }
         };
 

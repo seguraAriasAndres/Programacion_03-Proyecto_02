@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import cr.ac.una.est.programacion03proyecto02.view.personalizacion.BotonTema?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+
 <?import cr.ac.una.est.programacion03proyecto02.view.iconos.Icono?>
 
 <?import javafx.geometry.Insets?>
@@ -14,6 +18,9 @@
             xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="cr.ac.una.est.programacion03proyecto02.controller.seguridad.loginController"
             prefWidth="820.0" prefHeight="520.0">
+    <top>
+        <HBox alignment="CENTER_RIGHT"><BotonTema fx:id="btnTema"/></HBox>
+    </top>
     <center>
         <VBox alignment="CENTER" spacing="16.0" styleClass="card" prefWidth="420.0" maxWidth="420.0">
             <padding>

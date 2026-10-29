@@ -3,6 +3,7 @@ module cr.ac.una.est.programacion03proyecto {
     requires javafx.fxml;
     requires java.sql;
     requires mysql.connector.j;
+    requires com.zaxxer.hikari;
 
     opens cr.ac.una.est.programacion03proyecto02.controller.catalogo to javafx.fxml;
     opens cr.ac.una.est.programacion03proyecto02.controller.pedidos to javafx.fxml;
@@ -11,6 +12,8 @@ module cr.ac.una.est.programacion03proyecto {
     opens cr.ac.una.est.programacion03proyecto02.controller.reportes to javafx.fxml;
     opens cr.ac.una.est.programacion03proyecto02.view.iconos to javafx.fxml;
     exports cr.ac.una.est.programacion03proyecto02.view.iconos to javafx.fxml;
+    opens cr.ac.una.est.programacion03proyecto02.view.personalizacion to javafx.fxml;
+    exports cr.ac.una.est.programacion03proyecto02.view.personalizacion to javafx.fxml;
 
     exports cr.ac.una.est.programacion03proyecto02.app;
 }

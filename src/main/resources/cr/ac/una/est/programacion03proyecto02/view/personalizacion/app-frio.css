@@ -1,19 +1,15 @@
 /* ==========================================================================
-   Hoja de estilos neutra de la aplicación (tema base).
+   Diseño frío y estilos comunes (antes app.css).
 
-   Cómo personalizar para un restaurante específico SIN tocar FXML ni Java:
-   1. Copie este archivo, por ejemplo a "app-restaurante-x.css", en esta misma
-      carpeta (cr/ac/una/est/programacion03proyecto02/view/).
-   2. Cambie SOLO las variables del bloque .root de abajo (colores, acento,
-      fondos y textos). El resto de la hoja las reutiliza.
-   3. En HelloApplication, antes de mostrar la primera pantalla, indique el
-      tema: navegador.usarHojaEstilos("app-restaurante-x.css").
+   El selector recorre frío, cálido y personalizado. NavegadorVistas conserva
+   esta base y añade app-calido.css o app-personalizado.css por separado.
+   La paleta de cada cliente se configura en app-personalizado.css.
 
    Los FXML no referencian esta hoja: el navegador la adjunta a cada escena.
    ========================================================================== */
 
 .root{
-    -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -fx-font-family: "Segoe UI";
     -fx-font-size: 13px;
     -fx-base: #ffffff;
     -fx-background: #f3f5f7;
@@ -69,7 +65,6 @@ HBox{
 
 .page-container{
     -fx-padding: 20px;
-    -fx-spacing: 14px;
     -fx-background-color: -fx-secondary-color;
 }
 
@@ -304,6 +299,25 @@ HBox{
 .list-cell:odd,
 .table-row-cell:odd{
     -fx-background-color: #f7f9fa;
+}
+
+/* La celda interna de un selector no debe heredar la altura fija de una fila de lista. */
+.combo-box > .list-cell {
+    -fx-cell-size: -1;
+    -fx-padding: 0 4px;
+    -fx-min-height: 18px;
+}
+.combo-box > .list-cell:filled:selected {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+}
+.date-picker > .text-field {
+    -fx-min-height: 0;
+    -fx-padding: 0 4px;
+}
+#lstOpciones .list-cell {
+    -fx-cell-size: -1;
+    -fx-padding: 4px 6px;
 }
 
 .list-cell:selected,

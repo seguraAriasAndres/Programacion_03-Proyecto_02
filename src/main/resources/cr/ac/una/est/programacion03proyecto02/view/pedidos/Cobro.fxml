@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import cr.ac.una.est.programacion03proyecto02.view.personalizacion.BotonTema?>
+
 <?import cr.ac.una.est.programacion03proyecto02.view.iconos.Icono?>
 
 <?import javafx.geometry.Insets?>
@@ -20,9 +22,11 @@
     <children>
         <VBox spacing="12.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
               AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-            <padding><Insets bottom="16.0" left="20.0" right="20.0" top="20.0"/></padding>
-
-            <Label text="Cobrar pedido" styleClass="page-title"/>
+            <padding><Insets bottom="16.0" left="20.0" right="20.0" top="20.0"/></padding>            <HBox alignment="CENTER_LEFT" spacing="12">
+                <Label text="Cobrar pedido" styleClass="page-title"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <BotonTema fx:id="btnTema"/>
+            </HBox>
 
             <HBox spacing="28.0" styleClass="card">
                 <VBox spacing="4.0">

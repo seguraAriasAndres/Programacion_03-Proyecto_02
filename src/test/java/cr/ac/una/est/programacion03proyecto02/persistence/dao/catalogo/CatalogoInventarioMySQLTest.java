@@ -30,7 +30,7 @@ class CatalogoInventarioMySQLTest {
         try(var s=conexion.createStatement()) {
             s.executeUpdate("CREATE TEMPORARY TABLE categoria(id BIGINT PRIMARY KEY AUTO_INCREMENT,nombre VARCHAR(100),activa BOOLEAN) ENGINE=InnoDB");
             s.executeUpdate("CREATE TEMPORARY TABLE producto(id BIGINT PRIMARY KEY AUTO_INCREMENT,nombre VARCHAR(150),precio_base DECIMAL(15,2),categoria_id BIGINT,activo BOOLEAN) ENGINE=InnoDB AUTO_INCREMENT=3000000001");
-            s.executeUpdate("CREATE TEMPORARY TABLE opcion_producto(id BIGINT PRIMARY KEY AUTO_INCREMENT,producto_id BIGINT,nombre VARCHAR(150),tipo_opcion VARCHAR(30),precio_adicional DECIMAL(15,2),activa BOOLEAN) ENGINE=InnoDB AUTO_INCREMENT=4000000001");
+            s.executeUpdate("CREATE TEMPORARY TABLE opcion_producto(id BIGINT PRIMARY KEY AUTO_INCREMENT,producto_id BIGINT,nombre VARCHAR(150),tipo_opcion VARCHAR(30),precio_adicional DECIMAL(15,2),activa BOOLEAN,producto_origen_id BIGINT NULL,eliminada BOOLEAN NOT NULL DEFAULT FALSE) ENGINE=InnoDB AUTO_INCREMENT=4000000001");
             s.executeUpdate("CREATE TEMPORARY TABLE receta_item(id BIGINT PRIMARY KEY AUTO_INCREMENT,producto_id BIGINT NULL,opcion_producto_id BIGINT NULL,ingrediente_id BIGINT,cantidad_requerida DECIMAL(15,6)) ENGINE=InnoDB");
             s.executeUpdate("CREATE TEMPORARY TABLE ingrediente(id BIGINT PRIMARY KEY,nombre VARCHAR(100),cantidad_disponible DECIMAL(15,6),unidad_medida VARCHAR(20),stock_minimo DECIMAL(15,6),activo BOOLEAN) ENGINE=InnoDB");
             s.executeUpdate("CREATE TEMPORARY TABLE movimiento_stock(id BIGINT PRIMARY KEY AUTO_INCREMENT,ingrediente_id BIGINT,pedido_id BIGINT NULL,tipo_movimiento VARCHAR(30),cantidad DECIMAL(15,6),fecha DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6),usuario VARCHAR(100),motivo VARCHAR(255)) ENGINE=InnoDB");
@@ -97,5 +97,64 @@ class CatalogoInventarioMySQLTest {
     }
     private BigDecimal stock() throws Exception {
         try(var s=conexion.createStatement();var r=s.executeQuery("SELECT cantidad_disponible FROM ingrediente WHERE id=1")) {r.next();return r.getBigDecimal(1);}
+    }
+    @Test void listarVariosProductosUsaSoloTresConsultas()throws Exception {
+        productos.guardarConRecetas(nuevo(),conexion);productos.guardarConRecetas(nuevo(),conexion);
+        var consultas=new java.util.concurrent.atomic.AtomicInteger();
+        Connection medida=(Connection)java.lang.reflect.Proxy.newProxyInstance(Connection.class.getClassLoader(),new Class<?>[]{Connection.class},(proxy,metodo,args)->{
+            if(metodo.getName().equals("prepareStatement"))consultas.incrementAndGet();
+            try{return metodo.invoke(conexion,args);}catch(java.lang.reflect.InvocationTargetException e){throw e.getCause();}
+        });
+        assertEquals(2,productos.listarActivos(medida).size());assertEquals(3,consultas.get());
+    }
+
+    @Test void opcionActivaNoPuedeQuedarComoTextoSinIngredientes() {
+        Producto producto=nuevo();OpcionProducto opcion=producto.getOpciones().getFirst();
+        opcion.setActiva(true);opcion.setReceta(List.of());
+        assertThrows(IllegalArgumentException.class,()->productos.guardarConRecetas(producto,conexion));
+    }
+
+    @Test void eliminarExtraLoOcultaAlRecargarYConservaSuIdHistorico()throws Exception {
+        Producto guardado=productos.guardarConRecetas(nuevo(),conexion);
+        long opcionId=guardado.getOpciones().getFirst().getId();
+        guardado.setOpciones(List.of());productos.guardarConRecetas(guardado,conexion);
+        assertTrue(productos.buscar(guardado.getId(),conexion).getOpciones().isEmpty());
+        try(var s=conexion.prepareStatement("SELECT activa,eliminada FROM opcion_producto WHERE id=?")) {
+            s.setLong(1,opcionId);try(var r=s.executeQuery()) {
+                assertTrue(r.next(),"El ID sigue existiendo para las referencias históricas.");
+                assertFalse(r.getBoolean("activa"));assertTrue(r.getBoolean("eliminada"));
+            }
+        }
+        guardado=productos.buscar(guardado.getId(),conexion);productos.guardarConRecetas(guardado,conexion);
+        assertTrue(productos.buscar(guardado.getId(),conexion).getOpciones().isEmpty(),"Guardar otra vez no debe restaurar el extra.");
+    }
+
+    @Test void desactivarUnExtraNoLoEliminaDelEditor()throws Exception {
+        Producto guardado=productos.guardarConRecetas(nuevo(),conexion);
+        Producto leido=productos.buscar(guardado.getId(),conexion);
+        assertEquals(1,leido.getOpciones().size());assertFalse(leido.getOpciones().getFirst().isActiva());
+        leido.getOpciones().getFirst().setActiva(true);productos.guardarConRecetas(leido,conexion);
+        assertTrue(productos.buscar(guardado.getId(),conexion).getOpciones().getFirst().isDisponible());
+    }
+
+    @Test void extraVinculadoSigueLaRecetaOriginalYDescuentaSusIngredientes()throws Exception {
+        Producto origen=new Producto(0,"Papas fritas",new BigDecimal("1000"),new Categoria(1,"Categoria",true),true);
+        origen.setReceta(List.of(new recetaItem(2,1.5)));
+        origen=productos.guardarConRecetas(origen,conexion);
+        Producto padre=nuevo();
+        OpcionProducto extra=padre.getOpciones().getFirst();extra.setActiva(true);extra.setProductoOrigenId(origen.getId());
+        padre=productos.guardarConRecetas(padre,conexion);
+        assertEquals(1.5,productos.buscar(padre.getId(),conexion).getOpciones().getFirst().getReceta().getFirst().getCantidadRequerida());
+        origen.setReceta(List.of(new recetaItem(2,2.25)));
+        productos.guardarConRecetas(origen,conexion);
+        Producto cargado=productos.buscar(padre.getId(),conexion);
+        assertEquals(2.25,cargado.getOpciones().getFirst().getReceta().getFirst().getCantidadRequerida());
+        var cantidades=cr.ac.una.est.programacion03proyecto02.logic.service.catalogo.calculadorReceta.calcular(cargado,cargado.getOpciones(),2);
+        assertEquals(4.5,cantidades.get(2L));
+        inventarioService inventario=new inventarioService(new ConexionDB(),new ingredienteDAO(),new movimientoStockDAO());
+        inventario.descontar(cantidades,42,"cajero",conexion);
+        try(var s=conexion.createStatement();var r=s.executeQuery("SELECT cantidad_disponible FROM ingrediente WHERE id=2")){
+            r.next();assertEquals(new BigDecimal("5.500000"),r.getBigDecimal(1));
+        }
     }
 }

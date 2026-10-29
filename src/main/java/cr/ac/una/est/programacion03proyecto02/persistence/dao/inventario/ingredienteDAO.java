@@ -186,37 +186,23 @@ public class ingredienteDAO {
             );
         }
 
-        String sql = """
-                SELECT cantidad_disponible, activo
-                FROM ingrediente
-                WHERE id = ?
-                """;
-
+        if(cantidadesValidadas.isEmpty())return true;
+        String sql="SELECT id,cantidad_disponible,activo FROM ingrediente WHERE id IN ("
+                +String.join(",",java.util.Collections.nCopies(cantidadesValidadas.size(),"?"))+")";
+        int encontrados=0;
         try (PreparedStatement sentencia = conexion.prepareStatement(sql)) {
-            for (Map.Entry<Long, BigDecimal> entrada
-                    : cantidadesValidadas.entrySet()) {
-
-                sentencia.setLong(1, entrada.getKey());
-
-                try (ResultSet resultado = sentencia.executeQuery()) {
-                    if (!resultado.next()) {
-                        return false;
-                    }
-
-                    BigDecimal disponible =
-                            resultado.getBigDecimal("cantidad_disponible");
-                    boolean activo = resultado.getBoolean("activo");
-
-                    if (!activo
-                            || disponible == null
-                            || disponible.compareTo(entrada.getValue()) < 0) {
-                        return false;
-                    }
+            int indice=1;
+            for(long id:cantidadesValidadas.keySet())sentencia.setLong(indice++,id);
+            try(ResultSet resultado=sentencia.executeQuery()) {
+                while(resultado.next()) {
+                    BigDecimal disponible=resultado.getBigDecimal("cantidad_disponible");
+                    if(!resultado.getBoolean("activo") || disponible==null
+                            || disponible.compareTo(cantidadesValidadas.get(resultado.getLong("id")))<0)return false;
+                    encontrados++;
                 }
             }
         }
-
-        return true;
+        return encontrados==cantidadesValidadas.size();
     }
 
      //Aplica una variación de forma atómica. Una reducción solo se aplica si

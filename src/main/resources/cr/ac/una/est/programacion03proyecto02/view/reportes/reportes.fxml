@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import cr.ac.una.est.programacion03proyecto02.view.personalizacion.BotonTema?>
+
 <?import cr.ac.una.est.programacion03proyecto02.view.iconos.Icono?>
 
 <?import javafx.geometry.Insets?>
@@ -18,8 +20,11 @@
             fx:controller="cr.ac.una.est.programacion03proyecto02.controller.reportes.reportesController"
             prefWidth="1100.0" prefHeight="700.0" styleClass="page-container">
     <top>
-        <VBox spacing="12.0">
-            <Label text="Reportes" styleClass="page-title"/>
+        <VBox spacing="12.0">            <HBox alignment="CENTER_LEFT" spacing="12">
+                <Label text="Reportes" styleClass="page-title"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <BotonTema fx:id="btnTema"/>
+            </HBox>
 
             <HBox spacing="10.0" alignment="CENTER_LEFT" styleClass="toolbar">
                 <Label text="Desde:"/>
