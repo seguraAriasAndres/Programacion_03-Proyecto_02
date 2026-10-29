@@ -3,7 +3,7 @@ package cr.ac.una.est.programacion03proyecto02.view;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.application.Platform;
+import cr.ac.una.est.programacion03proyecto02.support.JavaFxTestSupport;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.w3c.dom.Document;
@@ -20,8 +20,6 @@ import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -43,6 +41,7 @@ class ContratoFxmlTest {
             "seguridad/inicio.fxml",
             "seguridad/login.fxml",
             "seguridad/menu.fxml",
+            "seguridad/usuarios.fxml",
             "inventario/inventario.fxml",
             "reportes/reportes.fxml",
             "catalogo/categorias.fxml",
@@ -70,7 +69,8 @@ class ContratoFxmlTest {
                 for (int i = 0; i < nodos.getLength(); i++) {
                     Element elemento = (Element) nodos.item(i);
                     if (elemento.hasAttribute("fx:id")) {
-                        identificadores.add(elemento.getAttribute("fx:id"));
+                        assertTrue(identificadores.add(elemento.getAttribute("fx:id")),
+                                vista + " repite un fx:id.");
                     }
                     for (int a = 0; a < elemento.getAttributes().getLength(); a++) {
                         String atributo = elemento.getAttributes().item(a).getNodeName();
@@ -82,6 +82,8 @@ class ContratoFxmlTest {
                 }
 
                 Class<?> tipo = Class.forName(controlador);
+                assertTrue(documento.getElementsByTagName("BotonTema").getLength() == 1,
+                        vista + " debe tener un selector de tema accesible fuera de las pestañas.");
                 for (var campo : tipo.getDeclaredFields()) {
                     if (campo.isAnnotationPresent(FXML.class)) {
                         assertTrue(identificadores.contains(campo.getName()),
@@ -98,8 +100,8 @@ class ContratoFxmlTest {
 
     @Test
     void existeLaHojaDeEstilosNeutraBase() {
-        assertNotNull(getClass().getResource(RUTA_BASE + "app.css"),
-                "Falta view/app.css: es el tema base que adjunta NavegadorVistas.");
+        assertNotNull(getClass().getResource(RUTA_BASE + "personalizacion/app-frio.css"),
+                "Falta view/personalizacion/app-frio.css: es el tema base que adjunta NavegadorVistas.");
     }
 
     /**
@@ -111,21 +113,15 @@ class ContratoFxmlTest {
     @EnabledIfSystemProperty(named = "pruebas.javafx", matches = "true")
     @Test
     void cadaFxmlSeCargaConFXMLLoaderSinController() throws Exception {
-        CountDownLatch listo = new CountDownLatch(1);
-        try {
-            Platform.startup(listo::countDown);
-        } catch (IllegalStateException yaIniciado) {
-            listo.countDown();
-        }
-        assertTrue(listo.await(10, TimeUnit.SECONDS), "No se inició el toolkit de JavaFX.");
+        JavaFxTestSupport.iniciar();
 
         for (String vista : VISTAS) {
             try (InputStream entrada = getClass().getResourceAsStream(RUTA_BASE + vista)) {
                 assertNotNull(entrada, "Falta el recurso FXML: " + vista);
                 byte[] sinControlador = quitarControllerYEventos(entrada.readAllBytes());
                 FXMLLoader loader = new FXMLLoader();
-                assertDoesNotThrow(() -> loader.load(new ByteArrayInputStream(sinControlador)),
-                        vista + " no carga con FXMLLoader: revise elementos, atributos y propiedades.");
+                JavaFxTestSupport.ejecutar(() -> assertDoesNotThrow(() -> loader.load(new ByteArrayInputStream(sinControlador)),
+                        vista + " no carga con FXMLLoader: revise elementos, atributos y propiedades."));
             }
         }
     }

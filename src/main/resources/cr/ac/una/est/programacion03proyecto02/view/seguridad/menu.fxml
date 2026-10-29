@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import cr.ac.una.est.programacion03proyecto02.view.personalizacion.BotonTema?>
+
 <?import cr.ac.una.est.programacion03proyecto02.view.iconos.Icono?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
@@ -17,13 +19,15 @@
             <Label text="Menú principal" styleClass="section-title"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Label fx:id="lblUsuario" styleClass="muted-text"/>
+            <BotonTema fx:id="btnTema"/>
             <Button text="Cerrar sesión" onAction="#onCerrarSesion" styleClass="button-secondary"/>
         </HBox>
     </top>
     <center>
         <VBox alignment="CENTER" spacing="16.0">
             <Label text="Seleccione un módulo" styleClass="page-subtitle"/>
-            <TilePane alignment="CENTER" hgap="16.0" vgap="16.0" prefColumns="2">
+            <TilePane alignment="CENTER" hgap="16.0" vgap="16.0" prefColumns="2"
+                      prefTileWidth="320.0" prefTileHeight="180.0">
                 <Button fx:id="btnInventario" text="Inventario" onAction="#onInventario"
                         accessibleText="Abrir inventario" styleClass="module-card" contentDisplay="TOP" graphicTextGap="10.0">
                     <graphic>
@@ -59,6 +63,10 @@
                             <Label text="Tome pedidos, gestione su preparación y cobre." styleClass="module-description" wrapText="true" maxWidth="270.0"/>
                         </VBox>
                     </graphic>
+                </Button>
+                <Button fx:id="btnUsuarios" text="Usuarios y roles" onAction="#onUsuarios" styleClass="module-card"
+                        contentDisplay="TOP" graphicTextGap="10">
+                    <graphic><Label text="Cree cuentas de administrador, inventario y cajero." styleClass="module-description" wrapText="true" maxWidth="270"/></graphic>
                 </Button>
             </TilePane>
         </VBox>

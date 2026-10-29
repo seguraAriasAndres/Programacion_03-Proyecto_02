@@ -69,6 +69,14 @@ public class catalogoService implements ICatalogoService {
     // Comprueba stock para el producto y las opciones elegidas en la misma conexión.
     @Override
     public boolean hayStockSuficientePara(long productoId, List<Long> opcionesId, int cantidad, Connection conexion) throws SQLException{
+        return hayStockSuficientePara(productoId,cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.CantidadesOpciones.unaPorId(opcionesId),cantidad,conexion);
+    }
+
+    @Override public boolean hayStockSuficientePara(long productoId,Map<Long,Integer> cantidadesExtras,int cantidad)throws SQLException {
+        try(Connection conexion=conexionDB.getConnection()){return hayStockSuficientePara(productoId,cantidadesExtras,cantidad,conexion);}
+    }
+
+    @Override public boolean hayStockSuficientePara(long productoId,Map<Long,Integer> cantidadesExtras,int cantidad,Connection conexion)throws SQLException {
         Objects.requireNonNull(conexion, "La conexión no puede ser null.");
         if (productoId <= 0){
             throw new IllegalArgumentException("El ID del producto debe ser positivo.");
@@ -77,10 +85,11 @@ public class catalogoService implements ICatalogoService {
             throw new IllegalArgumentException("La cantidad debe ser positiva.");
         }
 
-        List<Long> idsValidados = validarIdsOpciones(opcionesId);
+        Map<Long,Integer> extras=cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.CantidadesOpciones.validar(cantidadesExtras);
+        List<Long> idsValidados = List.copyOf(extras.keySet());
         Producto producto = obtenerProductoActivo(productoId, conexion);
         List<OpcionProducto> opciones = seleccionarOpciones(producto, idsValidados);
-        Map<Long, Double> cantidades = calculadorReceta.calcular(producto, opciones, cantidad);
+        Map<Long, Double> cantidades = calculadorReceta.calcular(producto, opciones, extras, cantidad);
         return inventario.hayStockSuficiente(cantidades, conexion);
     }
 
@@ -129,9 +138,7 @@ public class catalogoService implements ICatalogoService {
     public List<Producto> listarPorCategoria(long categoriaId) throws SQLException{
         try (Connection conexion = conexionDB.getConnection()){
             List<Producto> resultado = productos.listarPorCategoria(categoriaId, conexion);
-            for (Producto producto : resultado){
-                actualizarDisponibilidad(producto, conexion);
-            }
+            actualizarDisponibilidades(resultado,conexion);
             return List.copyOf(resultado);
         }
     }
@@ -141,9 +148,7 @@ public class catalogoService implements ICatalogoService {
     public List<Producto> listarProductosActivos() throws SQLException{
         try (Connection conexion = conexionDB.getConnection()){
             List<Producto> resultado = productos.listarActivos(conexion);
-            for (Producto producto : resultado){
-                actualizarDisponibilidad(producto, conexion);
-            }
+            actualizarDisponibilidades(resultado,conexion);
             return List.copyOf(resultado);
         }
     }
@@ -165,7 +170,7 @@ public class catalogoService implements ICatalogoService {
         if (producto == null || !producto.isActivo() || producto.getCategoria() == null || !producto.getCategoria().isActiva()){
             throw new NoSuchElementException("No existe un producto activo con ID " + productoId + ".");
         }
-        producto.setOpciones(producto.getOpciones().stream().filter(OpcionProducto::isActiva).toList());
+        producto.setOpciones(producto.getOpciones().stream().filter(OpcionProducto::isDisponible).toList());
         return producto;
     }
 
@@ -173,6 +178,13 @@ public class catalogoService implements ICatalogoService {
     private void actualizarDisponibilidad(Producto producto, Connection conexion) throws SQLException{
         Map<Long, Double> cantidades = calculadorReceta.calcular(producto, List.of(), 1);
         producto.setDisponible(inventario.hayStockSuficiente(cantidades, conexion));
+    }
+    private void actualizarDisponibilidades(List<Producto> productos,Connection conexion)throws SQLException {
+        if(productos.isEmpty())return;
+        Map<Long,Map<Long,Double>> recetas=new java.util.HashMap<>();
+        for(Producto producto:productos)recetas.put(producto.getId(),calculadorReceta.calcular(producto,List.of(),1));
+        Map<Long,Boolean> disponibles=inventario.disponibilidades(recetas,conexion);
+        for(Producto producto:productos)producto.setDisponible(Boolean.TRUE.equals(disponibles.get(producto.getId())));
     }
 
     // Selecciona opciones activas que pertenezcan al producto.

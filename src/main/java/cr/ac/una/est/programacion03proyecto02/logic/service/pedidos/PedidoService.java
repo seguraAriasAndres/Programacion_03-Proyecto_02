@@ -2,6 +2,7 @@ package cr.ac.una.est.programacion03proyecto02.logic.service.pedidos;
 
 import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.OpcionProducto;
 import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.Producto;
+import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.CantidadesOpciones;
 import cr.ac.una.est.programacion03proyecto02.logic.model.inventario.recetaItem;
 import cr.ac.una.est.programacion03proyecto02.logic.model.pedidos.Pedido;
 import cr.ac.una.est.programacion03proyecto02.logic.model.pedidos.lineaPedido;
@@ -61,8 +62,38 @@ public class PedidoService implements IConsultaVentas{
         return creado;
     }
 
+    // Crea el borrador y su primera línea en una sola transacción si hay stock suficiente.
+    public Pedido crearConLinea(String cliente, Long productoId, List<Long> opcionesId, int cantidad, String usuario) throws SQLException {
+        return crearConLinea(cliente,productoId,CantidadesOpciones.unaPorId(opcionesId),cantidad,usuario);
+    }
+
+    public Pedido crearConLinea(String cliente,Long productoId,Map<Long,Integer> cantidadesExtras,int cantidad,String usuario)throws SQLException {
+        if(cliente==null || cliente.isBlank() || cliente.trim().length()>150)
+            throw new IllegalArgumentException("Ingrese el nombre del cliente antes de agregar productos.");
+        validarId(productoId); validarUsuario(usuario);
+        if(cantidad<=0) throw new IllegalArgumentException("La cantidad debe ser positiva.");
+        Map<Long,Integer> cantidadesOpciones=CantidadesOpciones.validar(cantidadesExtras);
+        List<Long> ids=List.copyOf(cantidadesOpciones.keySet());
+        Pedido guardado=ejecutarTransaccion(c->{
+            Producto producto=catalogo.obtenerProducto(productoId,c);
+            List<OpcionProducto> opciones=seleccionarOpciones(producto,ids);
+            if(!inventario.hayStockSuficiente(calculadorReceta.calcular(producto,opciones,cantidadesOpciones,cantidad),c))
+                throw new IllegalArgumentException("No hay stock suficiente para esa selección.");
+            PedidoDAO dao=new PedidoDAO(c);
+            Pedido nuevo=dao.insertarBorrador(cliente.trim(),usuario.trim());
+            nuevo.agregarLinea(new lineaPedido(0,producto,opciones,cantidadesOpciones,cantidad));
+            return dao.guardarBorrador(nuevo);
+        });
+        repositorio.actualizarTrasCommit(guardado);
+        return guardado;
+    }
+
     // Agrega una línea solo si el pedido acumulado puede cubrirse con el stock actual.
     public void agregarLinea(long pedidoId, Long productoId, List<Long> opcionesId, int cantidad, String usuario) throws SQLException{
+        agregarLinea(pedidoId,productoId,CantidadesOpciones.unaPorId(opcionesId),cantidad,usuario);
+    }
+
+    public void agregarLinea(long pedidoId,Long productoId,Map<Long,Integer> cantidadesExtras,int cantidad,String usuario)throws SQLException {
         validarId(pedidoId);
         validarId(productoId);
         validarUsuario(usuario);
@@ -71,13 +102,14 @@ public class PedidoService implements IConsultaVentas{
             throw new IllegalArgumentException("La cantidad debe ser positiva.");
         }
 
-        List<Long> seleccion = validarOpciones(opcionesId);
+        Map<Long,Integer> cantidadesOpciones=CantidadesOpciones.validar(cantidadesExtras);
+        List<Long> seleccion = List.copyOf(cantidadesOpciones.keySet());
 
         modificarPedido(pedidoId, usuario, true, (pedido, c) -> {
             Producto producto = catalogo.obtenerProducto(productoId, c);
             List<OpcionProducto> opciones = seleccionarOpciones(producto, seleccion);
 
-            pedido.agregarLinea(new lineaPedido(0, producto, opciones, cantidad));
+            pedido.agregarLinea(new lineaPedido(0, producto, opciones, cantidadesOpciones, cantidad));
 
             Map<Long, Double> cantidades = calcularIngredientes(pedido, c);
 
@@ -223,7 +255,7 @@ public class PedidoService implements IConsultaVentas{
 
             List<OpcionProducto> opciones = seleccionarOpciones(producto, linea.getOpcionIds());
 
-            calculadorReceta.acumular(totales, producto, opciones, linea.getCantidad());
+            calculadorReceta.acumular(totales, producto, opciones, linea.getCantidadesOpciones(), linea.getCantidad());
         }
 
         return calculadorReceta.convertir(totales);
@@ -238,7 +270,7 @@ public class PedidoService implements IConsultaVentas{
             OpcionProducto encontrada = null;
 
             for (OpcionProducto opcion : producto.getOpciones()){
-                if (opcion.getId() == id && opcion.isActiva()){
+                if (opcion.getId() == id && opcion.isDisponible()){
                     encontrada = opcion;
                     break;
                 }

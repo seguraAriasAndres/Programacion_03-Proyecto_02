@@ -2,9 +2,11 @@ package cr.ac.una.est.programacion03proyecto02.logic.model.pedidos;
 
 import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.Producto;
 import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.OpcionProducto;
+import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.CantidadesOpciones;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -20,6 +22,7 @@ public class lineaPedido {
     private final List<OpcionProducto> extras;
     private final long productoId;
     private final List<Long> opcionIds;
+    private final Map<Long,Integer> cantidadesOpciones;
 
 
     public lineaPedido(long id, Producto producto, int cantidad) {
@@ -27,6 +30,10 @@ public class lineaPedido {
     }
 
     public lineaPedido(long id, Producto producto, List<OpcionProducto> opcionesElegidas, int cantidad) {
+        this(id,producto,opcionesElegidas,CantidadesOpciones.unaPorId(opcionesElegidas.stream().map(OpcionProducto::getId).toList()),cantidad);
+    }
+
+    public lineaPedido(long id, Producto producto, List<OpcionProducto> opcionesElegidas, Map<Long,Integer> cantidadesExtras, int cantidad) {
         if (id < 0 || cantidad <= 0) {
             throw new IllegalArgumentException("El id no puede ser negativo y la cantidad debe ser positiva.");
         }
@@ -36,9 +43,15 @@ public class lineaPedido {
         this.id = id;
         this.nombreProducto = Objects.requireNonNull(producto.getNombre(), "Falta el nombre del producto.");
         this.nombreCategoria = Objects.requireNonNull(producto.getCategoria().getNombre(), "Falta el nombre de la categoria.");
-        this.precio_Unitario = producto.calcularSubtotal(seleccion);
+        Map<Long,Integer> cantidadesValidadas=CantidadesOpciones.validar(cantidadesExtras);
+        if(!cantidadesValidadas.keySet().equals(new java.util.HashSet<>(seleccion.stream().map(OpcionProducto::getId).toList())))
+            throw new IllegalArgumentException("Las cantidades deben corresponder exactamente a los extras elegidos.");
+        BigDecimal precio=producto.calcularSubtotal(seleccion);
+        for(OpcionProducto opcion:seleccion)precio=precio.add(opcion.getPrecioAdicional().multiply(BigDecimal.valueOf(cantidadesValidadas.get(opcion.getId())-1)));
+        this.precio_Unitario = precio;
         this.descripcion_extras = seleccion.stream()
-                .map(opcion -> Objects.requireNonNull(opcion.getNombre(), "Falta el nombre de la opcion."))
+                .map(opcion -> Objects.requireNonNull(opcion.getNombre(), "Falta el nombre de la opcion.")
+                        +(cantidadesValidadas.get(opcion.getId())==1?"":" x"+cantidadesValidadas.get(opcion.getId())))
                 .collect(Collectors.joining(", "));
         this.cantidad = cantidad;
 
@@ -46,6 +59,7 @@ public class lineaPedido {
         this.producto = producto;
         this.productoId = producto.getId();
         this.opcionIds = seleccion.stream().map(OpcionProducto::getId).toList();
+        this.cantidadesOpciones=cantidadesValidadas;
 
     }
 
@@ -58,7 +72,7 @@ public class lineaPedido {
 
     private lineaPedido(long id, String nombreProducto, String nombreCategoria,
             String descripcionExtras, BigDecimal precioUnitario, int cantidad) {
-        this(id, 0, List.of(), nombreProducto, nombreCategoria, descripcionExtras, precioUnitario, cantidad);
+        this(id, 0, Map.of(), nombreProducto, nombreCategoria, descripcionExtras, precioUnitario, cantidad);
     }
 
     /** Restaura referencias y precios guardados sin cargar ni recalcular el catalogo. */
@@ -73,11 +87,17 @@ public class lineaPedido {
                 || new java.util.HashSet<>(ids).size() != ids.size()) {
             throw new IllegalArgumentException("Las opciones persistidas requieren ids positivos y unicos.");
         }
-        return new lineaPedido(id, productoId, ids, nombreProducto, nombreCategoria,
+        return new lineaPedido(id, productoId, CantidadesOpciones.unaPorId(ids), nombreProducto, nombreCategoria,
                 descripcionExtras, precioUnitario, cantidad);
     }
 
-    private lineaPedido(long id, long productoId, List<Long> opcionIds, String nombreProducto,
+    public static lineaPedido reconstruirPersistida(long id,long productoId,Map<Long,Integer> cantidadesExtras,
+            String nombreProducto,String nombreCategoria,String descripcionExtras,BigDecimal precioUnitario,int cantidad) {
+        if(productoId<=0)throw new IllegalArgumentException("El producto persistido requiere un ID positivo.");
+        return new lineaPedido(id,productoId,CantidadesOpciones.validar(cantidadesExtras),nombreProducto,nombreCategoria,descripcionExtras,precioUnitario,cantidad);
+    }
+
+    private lineaPedido(long id, long productoId, Map<Long,Integer> cantidadesExtras, String nombreProducto,
             String nombreCategoria, String descripcionExtras, BigDecimal precioUnitario, int cantidad) {
         if (id <= 0 || cantidad <= 0) {
             throw new IllegalArgumentException("El id y la cantidad deben ser mayores que cero.");
@@ -94,7 +114,8 @@ public class lineaPedido {
         this.producto = null;
         this.extras = List.of();
         this.productoId = productoId;
-        this.opcionIds = opcionIds;
+        this.cantidadesOpciones=CantidadesOpciones.validar(cantidadesExtras);
+        this.opcionIds = List.copyOf(cantidadesOpciones.keySet());
     }
 
     /** Copia la linea con su id generado sin recalcular nombres, opciones ni precios. */
@@ -116,6 +137,7 @@ public class lineaPedido {
         this.extras = origen.extras;
         this.productoId = origen.productoId;
         this.opcionIds = origen.opcionIds;
+        this.cantidadesOpciones=origen.cantidadesOpciones;
     }
 
     public long getId() { return id; }
@@ -130,6 +152,7 @@ public class lineaPedido {
     public List<OpcionProducto> getExtras() { return extras; }
     public long getProductoId() { return productoId; }
     public List<Long> getOpcionIds() { return opcionIds; }
+    public Map<Long,Integer> getCantidadesOpciones() { return cantidadesOpciones; }
 
     public BigDecimal calcularSubtotal() {
         return precio_Unitario.multiply(BigDecimal.valueOf(cantidad));

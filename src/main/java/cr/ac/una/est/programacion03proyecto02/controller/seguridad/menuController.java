@@ -21,6 +21,7 @@ public class menuController{
     @FXML private Button btnCatalogo;
     @FXML private Button btnReportes;
     @FXML private Button btnPedidos;
+    @FXML private Button btnUsuarios;
 
     public menuController(SesionActual sesion, NavegadorVistas navegador){
         this.sesion = Objects.requireNonNull(sesion);
@@ -43,6 +44,7 @@ public class menuController{
         mostrarBoton(btnCatalogo, esAdmin);
         mostrarBoton(btnReportes, esAdmin);
         mostrarBoton(btnPedidos, esCajero);
+        mostrarBoton(btnUsuarios, esAdmin);
     }
 
     // Abre la pantalla de inventario para el administrador o el encargado.
@@ -68,6 +70,7 @@ public class menuController{
     private void onPedidos(){
         navegador.mostrarPedidosActivos();
     }
+    @FXML private void onUsuarios(){ navegador.mostrarUsuarios(); }
 
     // Cierra la sesión y vuelve al inicio.
     @FXML

@@ -21,254 +21,97 @@ import java.util.Set;
 
 public class productoDAO {
 
-    private static final String BUSCAR_PRODUCTO = """
-            SELECT p.id AS producto_id,
-                   p.nombre AS producto_nombre,
-                   p.precio_base,
-                   p.activo AS producto_activo,
-                   c.id AS categoria_id,
-                   c.nombre AS categoria_nombre,
-                   c.activa AS categoria_activa
-            FROM producto p
-            JOIN categoria c ON c.id = p.categoria_id
-            WHERE p.id = ?
+    private static final String SELECCION = """
+            SELECT p.id AS producto_id, p.nombre AS producto_nombre, p.precio_base,
+                   p.activo AS producto_activo, c.id AS categoria_id,
+                   c.nombre AS categoria_nombre, c.activa AS categoria_activa
+            FROM producto p JOIN categoria c ON c.id=p.categoria_id
             """;
 
-    public Producto buscar(long productoId, Connection conexion)
-            throws SQLException {
+    public Producto buscar(long productoId, Connection conexion) throws SQLException {
         validarId(productoId);
-        Objects.requireNonNull(conexion, "La conexión no puede ser null.");
-
-        Producto producto;
-
-        try (PreparedStatement sentencia =
-                     conexion.prepareStatement(BUSCAR_PRODUCTO)) {
-            sentencia.setLong(1, productoId);
-
-            try (ResultSet resultado = sentencia.executeQuery()) {
-                if (!resultado.next()) {
-                    return null;
-                }
-
-                BigDecimal precioBase = resultado.getBigDecimal("precio_base");
-                if (precioBase == null) {
-                    throw new SQLException(
-                            "El producto tiene un precio base null."
-                    );
-                }
-
-                Categoria categoria = new Categoria(
-                        resultado.getLong("categoria_id"),
-                        resultado.getString("categoria_nombre"),
-                        resultado.getBoolean("categoria_activa")
-                );
-
-                producto = new Producto(
-                        resultado.getLong("producto_id"),
-                        resultado.getString("producto_nombre"),
-                        precioBase,
-                        categoria,
-                        resultado.getBoolean("producto_activo")
-                );
-            }
-        }
-
-        producto.setReceta(cargarRecetaProducto(productoId, conexion));
-        producto.setOpciones(new ArrayList<>(cargarOpciones(productoId, conexion)));
-
-        return producto;
+        List<Producto> resultado=cargarProductos(SELECCION+" WHERE p.id=?",productoId,conexion);
+        return resultado.isEmpty()?null:resultado.getFirst();
     }
-
-    public List<Producto> listarActivos(Connection conexion)
-            throws SQLException {
-        Objects.requireNonNull(conexion, "La conexión no puede ser null.");
-
-        String sql = """
-                SELECT p.id
-                FROM producto p
-                JOIN categoria c ON c.id = p.categoria_id
-                WHERE p.activo = TRUE
-                  AND c.activa = TRUE
-                ORDER BY p.id
-                """;
-
-        return cargarProductos(sql, null, conexion);
+    public List<Producto> listarActivos(Connection conexion) throws SQLException {
+        return cargarProductos(SELECCION+" WHERE p.activo=TRUE AND c.activa=TRUE ORDER BY p.id",null,conexion);
     }
-
-    public List<Producto> listarPorCategoria(
-            long categoriaId,
-            Connection conexion
-    ) throws SQLException {
+    public List<Producto> listarPorCategoria(long categoriaId, Connection conexion) throws SQLException {
         validarId(categoriaId);
-        Objects.requireNonNull(conexion, "La conexión no puede ser null.");
-
-        String sql = """
-                SELECT p.id
-                FROM producto p
-                JOIN categoria c ON c.id = p.categoria_id
-                WHERE p.activo = TRUE
-                  AND c.activa = TRUE
-                  AND p.categoria_id = ?
-                ORDER BY p.id
-                """;
-
-        return cargarProductos(sql, categoriaId, conexion);
+        return cargarProductos(SELECCION+" WHERE p.activo=TRUE AND c.activa=TRUE AND p.categoria_id=? ORDER BY p.id",categoriaId,conexion);
     }
 
-    private List<Producto> cargarProductos(
-            String sql,
-            Long categoriaId,
-            Connection conexion
-    ) throws SQLException {
-        List<Long> ids = new ArrayList<>();
-
-        try (PreparedStatement sentencia = conexion.prepareStatement(sql)) {
-            if (categoriaId != null) {
-                sentencia.setLong(1, categoriaId);
-            }
-
-            try (ResultSet resultado = sentencia.executeQuery()) {
-                while (resultado.next()) {
-                    ids.add(resultado.getLong("id"));
+    /** Tres consultas por listado, independientemente de cuántos productos u opciones existan. */
+    private List<Producto> cargarProductos(String sql, Long parametro, Connection conexion) throws SQLException {
+        Objects.requireNonNull(conexion,"Falta la conexión.");
+        java.util.Map<Long,Producto> productos=new java.util.LinkedHashMap<>();
+        try(PreparedStatement s=conexion.prepareStatement(sql)) {
+            if(parametro!=null)s.setLong(1,parametro);
+            try(ResultSet r=s.executeQuery()) {
+                while(r.next()) {
+                    BigDecimal precio=r.getBigDecimal("precio_base");
+                    if(precio==null)throw new SQLException("Precio base null.");
+                    Categoria categoria=new Categoria(r.getLong("categoria_id"),r.getString("categoria_nombre"),r.getBoolean("categoria_activa"));
+                    Producto producto=new Producto(r.getLong("producto_id"),r.getString("producto_nombre"),precio,categoria,r.getBoolean("producto_activo"));
+                    productos.put(producto.getId(),producto);
                 }
             }
         }
-
-        List<Producto> productos = new ArrayList<>();
-
-        for (long id : ids) {
-            Producto producto = buscar(id, conexion);
-            if (producto != null) {
-                productos.add(producto);
-            }
-        }
-
-        return List.copyOf(productos);
-    }
-
-    private List<OpcionProducto> cargarOpciones(
-            long productoId,
-            Connection conexion
-    ) throws SQLException {
-        String sql = """
-                SELECT id, nombre, tipo_opcion, precio_adicional, activa
-                FROM opcion_producto
-                WHERE producto_id = ?
-                ORDER BY id
-                """;
-
-        List<OpcionProducto> opciones = new ArrayList<>();
-
-        try (PreparedStatement sentencia = conexion.prepareStatement(sql)) {
-            sentencia.setLong(1, productoId);
-
-            try (ResultSet resultado = sentencia.executeQuery()) {
-                while (resultado.next()) {
-                    BigDecimal precio =
-                            resultado.getBigDecimal("precio_adicional");
-
-                    if (precio == null) {
-                        throw new SQLException(
-                                "Una opción tiene precio adicional null."
-                        );
-                    }
-
+        if(productos.isEmpty())return List.of();
+        java.util.Map<Long,OpcionProducto> opciones=new java.util.LinkedHashMap<>();
+        Set<Long> padresReceta=new java.util.LinkedHashSet<>(productos.keySet());
+        String opcionesSql="SELECT o.*, po.activo AS origen_activo, co.activa AS origen_categoria_activa FROM opcion_producto o "
+                +"LEFT JOIN producto po ON po.id=o.producto_origen_id LEFT JOIN categoria co ON co.id=po.categoria_id "
+                +"WHERE o.eliminada=FALSE AND o.producto_id IN ("+marcas(productos.size())+") ORDER BY o.id";
+        try(PreparedStatement s=conexion.prepareStatement(opcionesSql)) {
+            enlazar(s,1,productos.keySet());
+            try(ResultSet r=s.executeQuery()) {
+                while(r.next()) {
                     try {
-                        opciones.add(new OpcionProducto(
-                                resultado.getLong("id"),
-                                resultado.getString("nombre"),
-                                TipoOpcion.valueOf(
-                                        resultado.getString("tipo_opcion")
-                                ),
-                                precio,
-                                resultado.getBoolean("activa")
-                        ));
-                    } catch (IllegalArgumentException error) {
-                        throw new SQLException(
-                                "Una opción tiene un tipo desconocido.",
-                                error
-                        );
-                    }
+                        if(r.getBigDecimal("precio_adicional")==null)throw new SQLException("Una opción tiene precio adicional null.");
+                        OpcionProducto opcion=new OpcionProducto(r.getLong("id"),r.getString("nombre"),
+                                TipoOpcion.valueOf(r.getString("tipo_opcion")),r.getBigDecimal("precio_adicional"),r.getBoolean("activa"));
+                        long origen=r.getLong("producto_origen_id");
+                        opcion.setProductoOrigenId(origen);
+                        if(origen>0) {
+                            padresReceta.add(origen);
+                            opcion.setOrigenDisponible(r.getBoolean("origen_activo") && r.getBoolean("origen_categoria_activa"));
+                        }
+                        opciones.put(opcion.getId(),opcion);
+                        productos.get(r.getLong("producto_id")).getOpciones().add(opcion);
+                    } catch(IllegalArgumentException | NullPointerException e) {throw new SQLException("Una opción contiene datos inválidos.",e);}
                 }
             }
         }
-
-        for (OpcionProducto opcion : opciones) {
-            opcion.setReceta(
-                    cargarRecetaOpcion(opcion.getId(), conexion)
-            );
-        }
-
-        return List.copyOf(opciones);
-    }
-
-    private List<recetaItem> cargarRecetaProducto(
-            long productoId,
-            Connection conexion
-    ) throws SQLException {
-        String sql = """
-                SELECT ingrediente_id, cantidad_requerida
-                FROM receta_item
-                WHERE producto_id = ?
-                  AND opcion_producto_id IS NULL
-                ORDER BY ingrediente_id
-                """;
-
-        return cargarReceta(sql, productoId, conexion);
-    }
-
-    private List<recetaItem> cargarRecetaOpcion(
-            long opcionProductoId,
-            Connection conexion
-    ) throws SQLException {
-        String sql = """
-                SELECT ingrediente_id, cantidad_requerida
-                FROM receta_item
-                WHERE opcion_producto_id = ?
-                  AND producto_id IS NULL
-                ORDER BY ingrediente_id
-                """;
-
-        return cargarReceta(sql, opcionProductoId, conexion);
-    }
-
-    private List<recetaItem> cargarReceta(
-            String sql,
-            long padreId,
-            Connection conexion
-    ) throws SQLException {
-        List<recetaItem> receta = new ArrayList<>();
-
-        try (PreparedStatement sentencia = conexion.prepareStatement(sql)) {
-            sentencia.setLong(1, padreId);
-
-            try (ResultSet resultado = sentencia.executeQuery()) {
-                while (resultado.next()) {
-                    BigDecimal cantidad =
-                            resultado.getBigDecimal("cantidad_requerida");
-
-                    if (cantidad == null) {
-                        throw new SQLException(
-                                "Una receta tiene cantidad requerida null."
-                        );
-                    }
-
-                    try {
-                        receta.add(new recetaItem(
-                                resultado.getLong("ingrediente_id"),
-                                cantidad.doubleValue()
-                        ));
-                    } catch (IllegalArgumentException error) {
-                        throw new SQLException(
-                                "Una receta contiene datos inválidos.",
-                                error
-                        );
-                    }
+        java.util.Map<Long,List<recetaItem>> recetasBase=new java.util.HashMap<>();
+        java.util.Map<Long,List<recetaItem>> recetasOpciones=new java.util.HashMap<>();
+        String recetaSql="SELECT producto_id,opcion_producto_id,ingrediente_id,cantidad_requerida FROM receta_item WHERE producto_id IN ("
+                +marcas(padresReceta.size())+")"+(opciones.isEmpty()?"":" OR opcion_producto_id IN ("+marcas(opciones.size())+")")+" ORDER BY ingrediente_id";
+        try(PreparedStatement s=conexion.prepareStatement(recetaSql)) {
+            int siguiente=enlazar(s,1,padresReceta); enlazar(s,siguiente,opciones.keySet());
+            try(ResultSet r=s.executeQuery()) {
+                while(r.next()) {
+                    BigDecimal cantidad=r.getBigDecimal("cantidad_requerida");
+                    if(cantidad==null)throw new SQLException("Una receta tiene cantidad null.");
+                    recetaItem item=new recetaItem(r.getLong("ingrediente_id"),cantidad.doubleValue());
+                    long padre=r.getLong("producto_id");
+                    if(!r.wasNull())recetasBase.computeIfAbsent(padre,k->new ArrayList<>()).add(item);
+                    else recetasOpciones.computeIfAbsent(r.getLong("opcion_producto_id"),k->new ArrayList<>()).add(item);
                 }
             }
         }
-
-        return receta;
+        for(Producto producto:productos.values())producto.setReceta(recetasBase.getOrDefault(producto.getId(),List.of()));
+        for(OpcionProducto opcion:opciones.values()) {
+            opcion.setReceta(opcion.getProductoOrigenId()>0?recetasBase.getOrDefault(opcion.getProductoOrigenId(),List.of())
+                    :recetasOpciones.getOrDefault(opcion.getId(),List.of()));
+            if(opcion.getReceta().isEmpty())opcion.setOrigenDisponible(false);
+        }
+        return List.copyOf(productos.values());
+    }
+    private static String marcas(int n) {return String.join(",",java.util.Collections.nCopies(n,"?"));}
+    private static int enlazar(PreparedStatement s,int indice,java.util.Collection<Long> ids)throws SQLException {
+        for(long id:ids)s.setLong(indice++,id);
+        return indice;
     }
 
     /** Guarda el agregado con la transacción del servicio; devuelve los IDs sin mutar el original. */
@@ -293,6 +136,16 @@ public class productoDAO {
             validarPrecio(opcion.getPrecioAdicional());
             Objects.requireNonNull(opcion.getTipo(), "Falta el tipo de opción.");
             validarReceta(opcion.getReceta());
+            if(opcion.isActiva() && opcion.getProductoOrigenId()==0 && opcion.getReceta().isEmpty())
+                throw new IllegalArgumentException("El extra '"+opcion.getNombre()+"' requiere ingredientes o un producto de origen.");
+            if(opcion.getProductoOrigenId()>0 && opcion.isActiva()) {
+                try(PreparedStatement s=conexion.prepareStatement("SELECT COUNT(r.id) FROM producto p JOIN categoria c ON c.id=p.categoria_id LEFT JOIN receta_item r ON r.producto_id=p.id WHERE p.id=? AND p.activo=TRUE AND c.activa=TRUE GROUP BY p.id")) {
+                    s.setLong(1,opcion.getProductoOrigenId());
+                    try(ResultSet r=s.executeQuery()) {
+                        if(!r.next() || r.getLong(1)==0) throw new IllegalArgumentException("El producto del extra debe estar activo y tener una receta de ingredientes.");
+                    }
+                }
+            }
         }
         long id = producto.getId();
         if (id > 0) {
@@ -313,8 +166,8 @@ public class productoDAO {
             }
         }
         guardarReceta(id, false, producto.getReceta(), conexion);
-        // Las opciones omitidas se desactivan: no se borran sus IDs históricos.
-        try (PreparedStatement s = conexion.prepareStatement("UPDATE opcion_producto SET activa=FALSE WHERE producto_id=?")) {
+        // Las opciones omitidas desaparecen del catálogo, conservando sus IDs en pedidos históricos.
+        try (PreparedStatement s = conexion.prepareStatement("UPDATE opcion_producto SET activa=FALSE, eliminada=TRUE WHERE producto_id=?")) {
             s.setLong(1, id); s.executeUpdate();
         }
         List<OpcionProducto> opcionesGuardadas = new ArrayList<>();
@@ -328,24 +181,27 @@ public class productoDAO {
                     }
                 }
                 try (PreparedStatement s = conexion.prepareStatement(
-                        "UPDATE opcion_producto SET nombre=?,tipo_opcion=?,precio_adicional=?,activa=? WHERE id=? AND producto_id=?")) {
+                        "UPDATE opcion_producto SET nombre=?,tipo_opcion=?,precio_adicional=?,activa=?,producto_origen_id=?,eliminada=FALSE WHERE id=? AND producto_id=?")) {
                     s.setString(1, validarNombre(opcion.getNombre())); s.setString(2, opcion.getTipo().name());
                     s.setBigDecimal(3, validarPrecio(opcion.getPrecioAdicional())); s.setBoolean(4, opcion.isActiva());
-                    s.setLong(5, opcionId); s.setLong(6, id); s.executeUpdate();
+                    if(opcion.getProductoOrigenId()>0)s.setLong(5,opcion.getProductoOrigenId());else s.setNull(5,java.sql.Types.BIGINT);
+                    s.setLong(6, opcionId); s.setLong(7, id); s.executeUpdate();
                 }
             } else {
                 try (PreparedStatement s = conexion.prepareStatement(
-                        "INSERT INTO opcion_producto(producto_id,nombre,tipo_opcion,precio_adicional,activa) VALUES (?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS)) {
+                        "INSERT INTO opcion_producto(producto_id,nombre,tipo_opcion,precio_adicional,activa,producto_origen_id) VALUES (?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS)) {
                     s.setLong(1, id); s.setString(2, validarNombre(opcion.getNombre())); s.setString(3, opcion.getTipo().name());
                     s.setBigDecimal(4, validarPrecio(opcion.getPrecioAdicional())); s.setBoolean(5, opcion.isActiva());
+                    if(opcion.getProductoOrigenId()>0)s.setLong(6,opcion.getProductoOrigenId());else s.setNull(6,java.sql.Types.BIGINT);
                     if (s.executeUpdate() != 1) throw new SQLException("No se pudo insertar la opción.");
                     opcionId = leerId(s);
                 }
             }
-            guardarReceta(opcionId, true, opcion.getReceta(), conexion);
+            guardarReceta(opcionId, true, opcion.getProductoOrigenId()>0?List.of():opcion.getReceta(), conexion);
             OpcionProducto guardada = new OpcionProducto(opcionId, opcion.getNombre().trim(), opcion.getTipo(),
                     opcion.getPrecioAdicional(), opcion.isActiva());
             guardada.setReceta(new ArrayList<>(opcion.getReceta()));
+            guardada.setProductoOrigenId(opcion.getProductoOrigenId());
             opcionesGuardadas.add(guardada);
         }
         Producto guardado = new Producto(id, nombre, precio, producto.getCategoria(), producto.isActivo());

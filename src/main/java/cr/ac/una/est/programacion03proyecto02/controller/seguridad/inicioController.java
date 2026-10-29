@@ -5,9 +5,7 @@ import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.SesionActu
 import cr.ac.una.est.programacion03proyecto02.view.navigation.NavegadorVistas;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
 
 import java.util.Objects;
 
@@ -16,9 +14,7 @@ public class inicioController{
     private final SesionActual sesion;
     private final NavegadorVistas navegador;
 
-    @FXML private TextField txtNombreCajero;
     @FXML private Label lblMensaje;
-    @FXML private Button btnTema;
 
     public inicioController(SesionActual sesion, NavegadorVistas navegador){
         this.sesion = Objects.requireNonNull(sesion);
@@ -29,7 +25,6 @@ public class inicioController{
     private void initialize(){
         lblMensaje.visibleProperty().bind(lblMensaje.textProperty().isNotEmpty());
         lblMensaje.managedProperty().bind(lblMensaje.visibleProperty());
-        actualizarTextoTema();
     }
 
     // Abre el login para la opción de administrador.
@@ -44,31 +39,16 @@ public class inicioController{
         abrirLogin(Rol.STOCK_MANAGER);
     }
 
-    // Inicia la sesión de cajero con el nombre escrito.
+    // El cajero también debe autenticarse con una cuenta registrada.
     @FXML
     private void onIniciarCajero(){
-        try{
-            sesion.iniciarComoCajero(txtNombreCajero.getText());
-            navegador.mostrarMenu();
-        } catch (RuntimeException error){
-            mostrarMensaje(error.getMessage());
-        }
+        abrirLogin(Rol.CAJERO);
     }
 
     // Cierra la aplicación.
     @FXML
     private void onSalir(){
         Platform.exit();
-    }
-
-    @FXML
-    private void onCambiarTema(){
-        navegador.alternarTema();
-        actualizarTextoTema();
-    }
-
-    private void actualizarTextoTema(){
-        btnTema.setText(navegador.esTemaCalido() ? "Usar tema frío" : "Usar tema cálido");
     }
 
     // Abre el login con el rol que la persona eligió.

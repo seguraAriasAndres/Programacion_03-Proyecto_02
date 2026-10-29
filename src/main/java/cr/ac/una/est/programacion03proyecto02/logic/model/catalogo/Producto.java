@@ -115,7 +115,7 @@ public class Producto {
         }
         var idsElegidos = new HashSet<Long>();
         for (OpcionProducto opcion : List.copyOf(opcionesElegidas)) {
-            if (!opciones.contains(opcion) || !opcion.isActiva()
+            if (!opciones.contains(opcion) || !opcion.isDisponible()
                     || !idsElegidos.add(opcion.getId())) {
                 throw new IllegalArgumentException("Cada opcion debe pertenecer al producto, estar activa y no repetirse.");
             }

@@ -2,6 +2,7 @@ package cr.ac.una.est.programacion03proyecto02.logic.service.catalogo;
 
 import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.OpcionProducto;
 import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.Producto;
+import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.CantidadesOpciones;
 import cr.ac.una.est.programacion03proyecto02.logic.model.inventario.recetaItem;
 
 import java.math.BigDecimal;
@@ -29,8 +30,21 @@ public final class calculadorReceta {
         return convertir(totales);
     }
 
+    public static Map<Long,Double> calcular(Producto producto,List<OpcionProducto> opciones,Map<Long,Integer> cantidades,int cantidad) {
+        Map<Long,BigDecimal> totales=new TreeMap<>();acumular(totales,producto,opciones,cantidades,cantidad);return convertir(totales);
+    }
+
     // Suma recetas de productos y opciones a un acumulado compartido.
     public static void acumular(Map<Long, BigDecimal> totales, Producto producto, List<OpcionProducto> opcionesElegidas, int cantidad){
+        if(opcionesElegidas==null || opcionesElegidas.stream().anyMatch(Objects::isNull))throw new IllegalArgumentException("Use una lista vacía si no hay extras y no incluya opciones null.");
+        acumular(totales,producto,opcionesElegidas,CantidadesOpciones.unaPorId(opcionesElegidas.stream().map(OpcionProducto::getId).toList()),cantidad);
+    }
+
+    public static void acumular(Map<Long,BigDecimal> totales,Producto producto,List<OpcionProducto> opcionesElegidas,Map<Long,Integer> cantidadesExtras,int cantidad) {
+        if(opcionesElegidas==null || opcionesElegidas.stream().anyMatch(Objects::isNull))throw new IllegalArgumentException("La selección de extras no puede contener null.");
+        Map<Long,Integer> cantidades=CantidadesOpciones.validar(cantidadesExtras);
+        if(!cantidades.keySet().equals(new HashSet<>(opcionesElegidas.stream().map(OpcionProducto::getId).toList())))
+            throw new IllegalArgumentException("Las cantidades no coinciden con los extras elegidos.");
         Objects.requireNonNull(totales, "El acumulado no puede ser null.");
         Objects.requireNonNull(producto, "El producto no puede ser null.");
 
@@ -50,7 +64,7 @@ public final class calculadorReceta {
         for (OpcionProducto opcion : opcionesElegidas){
             if (opcion == null
                     || !producto.getOpciones().contains(opcion)
-                    || !opcion.isActiva()
+                    || !opcion.isDisponible()
                     || opcion.getId() <= 0
                     || !opcionesRevisadas.add(opcion.getId())){
                 throw new IllegalArgumentException(
@@ -59,7 +73,10 @@ public final class calculadorReceta {
                 );
             }
 
-            acumularReceta(totales, opcion.getReceta(), cantidad);
+            int unidadesExtra;
+            try {unidadesExtra=Math.multiplyExact(cantidad,cantidades.get(opcion.getId()));}
+            catch(ArithmeticException error){throw new IllegalArgumentException("La cantidad total de extras es demasiado grande.",error);}
+            acumularReceta(totales, opcion.getReceta(), unidadesExtra);
         }
     }
 

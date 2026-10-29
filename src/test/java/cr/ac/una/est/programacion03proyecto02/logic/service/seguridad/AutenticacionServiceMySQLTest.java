@@ -74,6 +74,21 @@ class AutenticacionServiceMySQLTest {
         }
     }
 
+    @Test void administradorCreaCajeroConHashYElCajeroPuedeAutenticarse()throws Exception {
+        SesionActual sesion=new SesionActual();
+        sesion.iniciar(new Usuario(1,"administrador","hash-prueba",Rol.ADMIN,true));
+        UsuariosService administracion=new UsuariosService(dao,sesion);
+        var cuenta=administracion.crear("cajero-nuevo","clave-de-prueba",Rol.CAJERO,true);
+        assertTrue(cuenta.id()>Integer.MAX_VALUE);
+        assertEquals(Rol.CAJERO,servicio.autenticar("cajero-nuevo","clave-de-prueba").getRol());
+        assertNull(servicio.autenticar("cajero-nuevo","incorrecta"));
+        assertEquals(1,administracion.listar().size());
+        assertThrows(IllegalArgumentException.class,()->administracion.crear("cajero-nuevo","clave-de-prueba",Rol.ADMIN,true));
+        sesion.iniciar(new Usuario(cuenta.id(),cuenta.nombreUsuario(),"hash-prueba",Rol.CAJERO,true));
+        assertThrows(SecurityException.class,administracion::listar);
+        assertThrows(SecurityException.class,()->administracion.crear("otro","clave-de-prueba",Rol.ADMIN,true));
+    }
+
     private void crearUsuario(String nombre, String hash, Rol rol, boolean activo) throws SQLException {
         try (PreparedStatement sentencia = conexion.prepareStatement(
                 "INSERT INTO usuario (nombre_usuario, hash, rol, activo) VALUES (?, ?, ?, ?)")) {

@@ -12,6 +12,8 @@ import cr.ac.una.est.programacion03proyecto02.controller.reportes.reportesContro
 import cr.ac.una.est.programacion03proyecto02.controller.seguridad.inicioController;
 import cr.ac.una.est.programacion03proyecto02.controller.seguridad.loginController;
 import cr.ac.una.est.programacion03proyecto02.controller.seguridad.menuController;
+import cr.ac.una.est.programacion03proyecto02.controller.seguridad.UsuariosController;
+import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.UsuariosService;
 import cr.ac.una.est.programacion03proyecto02.logic.model.pedidos.Recibo;
 import cr.ac.una.est.programacion03proyecto02.logic.model.seguridad.enums.Rol;
 import cr.ac.una.est.programacion03proyecto02.logic.service.catalogo.catalogoService;
@@ -21,7 +23,11 @@ import cr.ac.una.est.programacion03proyecto02.logic.service.pedidos.PedidoServic
 import cr.ac.una.est.programacion03proyecto02.logic.service.reportes.ReporteService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.IAutenticacionService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.SesionActual;
+import cr.ac.una.est.programacion03proyecto02.view.personalizacion.BotonTema;
+import cr.ac.una.est.programacion03proyecto02.view.personalizacion.TemaVisual;
 
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -47,9 +53,11 @@ public class NavegadorVistas{
     private CobroService cobros;
     private IAutenticacionService autenticacion;
     private ReporteService reportes;
+    private UsuariosService usuarios;
+    private boolean vistaMostrada;
     // Hoja de estilos por defecto; un tema de cliente la sustituye sin tocar los FXML.
-    private String hojaEstilos = rutaBase + "app.css";
-    private boolean temaCalido;
+    private String hojaEstilos = rutaBase + TemaVisual.FRIO.getArchivo();
+    private final ReadOnlyObjectWrapper<TemaVisual> tema = new ReadOnlyObjectWrapper<>(TemaVisual.FRIO);
 
     // Guarda los servicios de pedidos y cobros que compartirán sus controladores.
     public void configurarPedidos(PedidoService pedidos, CobroService cobros){
@@ -62,6 +70,9 @@ public class NavegadorVistas{
         this.autenticacion = Objects.requireNonNull(autenticacion);
         this.reportes = Objects.requireNonNull(reportes);
     }
+
+    public void configurarUsuarios(UsuariosService usuarios){ this.usuarios=Objects.requireNonNull(usuarios); }
+    public void mostrarUsuarios(){ abrir("seguridad/usuarios.fxml"); }
 
     // Configura la ventana, los servicios compartidos y la sesión actual.
     public void configurar(Stage ventana, catalogoService catalogo, iinventarioService inventario, SesionActual sesion){
@@ -78,7 +89,7 @@ public class NavegadorVistas{
     }
 
     // Cambia la hoja de estilos de todas las pantallas. Una ruta inexistente
-    // vuelve al app.css neutro; un tema de cliente se copia desde ese archivo.
+    // vuelve al app-frio.css neutro; un tema de cliente se copia desde ese archivo.
     public void usarHojaEstilos(String ruta){
         if (ruta == null || ruta.isBlank()){
             throw new IllegalArgumentException("La ruta de la hoja de estilos no puede estar vacía.");
@@ -86,23 +97,35 @@ public class NavegadorVistas{
         this.hojaEstilos = ruta.replace('\\', '/').startsWith("/")
                 ? ruta.replace('\\', '/')
                 : rutaBase + ruta.replace('\\', '/');
+        if (ventana != null && ventana.getScene() != null){
+            aplicarEstilos(ventana.getScene());
+        }
     }
 
-    // Alterna entre la paleta fría existente y la paleta cálida.
+    // Recorre frío -> cálido -> personalizado -> frío sin recargar el formulario.
     public void alternarTema(){
         exigirVentana();
-        temaCalido = !temaCalido;
+        TemaVisual siguiente = tema.get().siguiente();
+        if (getClass().getResource(rutaBase + siguiente.getArchivo()) == null){
+            throw new IllegalStateException("No se encontró la hoja del diseño " + siguiente.getNombre() + ".");
+        }
+        tema.set(siguiente);
         if (ventana.getScene() != null){
-            String tema = getClass().getResource(rutaBase + "app-calido.css").toExternalForm();
-            ventana.getScene().getStylesheets().remove(tema);
-            if (temaCalido){
-                ventana.getScene().getStylesheets().add(tema);
-            }
+            aplicarEstilos(ventana.getScene());
         }
     }
 
     public boolean esTemaCalido(){
-        return temaCalido;
+        return tema.get() == TemaVisual.CALIDO;
+    }
+
+    public TemaVisual getTemaActual(){
+        return tema.get();
+    }
+
+    // Permite mantener sincronizados los botones sin que modifiquen el estado directamente.
+    public ReadOnlyObjectProperty<TemaVisual> temaProperty(){
+        return tema.getReadOnlyProperty();
     }
 
     // Abre la pantalla inicial pública.
@@ -120,9 +143,6 @@ public class NavegadorVistas{
     // Abre el login con el rol administrativo elegido.
     public void mostrarLogin(Rol rolEsperado){
         Objects.requireNonNull(rolEsperado);
-        if (rolEsperado != Rol.ADMIN && rolEsperado != Rol.STOCK_MANAGER){
-            throw new IllegalArgumentException("El login solo admite ADMIN o STOCK_MANAGER.");
-        }
 
         exigirVentana();
         ventana.getProperties().put(claveRolLogin, rolEsperado);
@@ -250,6 +270,10 @@ public class NavegadorVistas{
             sesion.exigirAlgunoDe(Rol.ADMIN, Rol.STOCK_MANAGER, Rol.CAJERO);
             return;
         }
+        if (vista.equals("seguridad/usuarios.fxml")){
+            sesion.exigirRol(Rol.ADMIN);
+            return;
+        }
         if (vista.startsWith("pedidos/")){
             validarPedidos();
             return;
@@ -289,14 +313,24 @@ public class NavegadorVistas{
             loader.setControllerFactory(this::crearControlador);
             Parent raiz = loader.load();
             Object controlador = loader.getController();
+            raiz.lookupAll(".theme-toggle").forEach(nodo -> ((BotonTema) nodo).configurar(this));
 
             if (configurarControlador != null) {
                 configurarControlador.accept(controlador);
             }
 
-            Scene escena = new Scene(raiz);
+            // La escena y la ventana permanecen: cambiar de vista no restaura sus dimensiones.
+            Scene escena = ventana.getScene();
+            if (!vistaMostrada || escena == null){
+                var limites = javafx.stage.Screen.getPrimary().getVisualBounds();
+                escena = new Scene(raiz, Math.min(1150, limites.getWidth() - 40),
+                        Math.min(800, limites.getHeight() - 80));
+                ventana.setScene(escena);
+                vistaMostrada = true;
+            } else {
+                escena.setRoot(raiz);
+            }
             aplicarEstilos(escena);
-            ventana.setScene(escena);
             ventana.show();
         } catch (IOException error){
             throw new IllegalStateException("No se pudo cargar la vista " + ruta, error);
@@ -305,23 +339,26 @@ public class NavegadorVistas{
 
     // Adjunta la hoja de estilos a la escena; si falta, usa el tema neutro base.
     private void aplicarEstilos(Scene escena){
+        java.util.Set<String> hojas = new java.util.LinkedHashSet<>();
         URL hoja = getClass().getResource(hojaEstilos);
         if (hoja == null){
-            hoja = getClass().getResource(rutaBase + "app.css");
+            hoja = getClass().getResource(rutaBase + TemaVisual.FRIO.getArchivo());
         }
         if (hoja != null){
-            escena.getStylesheets().add(hoja.toExternalForm());
+            hojas.add(hoja.toExternalForm());
         }
-        if (temaCalido){
-            URL tema = getClass().getResource(rutaBase + "app-calido.css");
-            if (tema != null){
-                escena.getStylesheets().add(tema.toExternalForm());
+        if (tema.get() != TemaVisual.FRIO){
+            URL seleccionada = getClass().getResource(rutaBase + tema.get().getArchivo());
+            if (seleccionada != null){
+                hojas.add(seleccionada.toExternalForm());
             }
         }
+        escena.getStylesheets().setAll(hojas);
     }
 
     // Construye los controladores con sus dependencias compartidas.
     private Object crearControlador(Class<?> tipo){
+        if(tipo==UsuariosController.class) return new UsuariosController(usuarios,this);
         if (tipo == inicioController.class){
             return new inicioController(sesion, this);
         }
@@ -368,6 +405,7 @@ public class NavegadorVistas{
 
     // Comprueba que el usuario sea cajero y que los servicios de pedidos estén listos.
     private void validarPedidos(){
+        exigirVentana();
         if (pedidos == null || cobros == null){
             throw new IllegalStateException("Los servicios de pedidos no están configurados.");
         }

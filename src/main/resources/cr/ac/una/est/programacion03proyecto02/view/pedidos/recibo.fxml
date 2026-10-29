@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import cr.ac.una.est.programacion03proyecto02.view.personalizacion.BotonTema?>
+
 <?import cr.ac.una.est.programacion03proyecto02.view.iconos.Icono?>
 
 <?import javafx.geometry.*?>
@@ -9,8 +11,11 @@
 <!-- fx:id enlaza controles con campos @FXML; onAction enlaza eventos con metodos. -->
 
 <VBox prefHeight="620" prefWidth="900" spacing="14" styleClass="page-container" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cr.ac.una.est.programacion03proyecto02.controller.pedidos.ReciboController">
-    <padding><Insets bottom="20" left="20" right="20" top="20" /></padding>
-    <Label text="Recibo de pago" styleClass="page-title" />
+    <padding><Insets bottom="20" left="20" right="20" top="20" /></padding>    <HBox alignment="CENTER_LEFT" spacing="12">
+        <Label text="Recibo de pago" styleClass="page-title" />
+        <Region HBox.hgrow="ALWAYS"/>
+        <BotonTema fx:id="btnTema"/>
+    </HBox>
     <GridPane hgap="16" vgap="10" styleClass="card">
         <Label text="Recibo:" GridPane.rowIndex="0" />
         <Label fx:id="lblIdRecibo" text="-" GridPane.columnIndex="1" GridPane.rowIndex="0" />

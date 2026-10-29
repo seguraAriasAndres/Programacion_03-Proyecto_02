@@ -7,8 +7,6 @@ import java.util.Objects;
 
 public class SesionActual{
 
-    private static final String hashCajeroTemporal = "sesion-cajero-temporal-sin-clave";
-
     private Usuario usuario;
 
     // Inicia la sesión con un usuario existente y activo.
@@ -17,21 +15,16 @@ public class SesionActual{
         if (!usuario.isActivo()){
             throw new SecurityException("No se puede iniciar sesion con un usuario inactivo.");
         }
+        if (usuario.getId() <= 0) {
+            throw new SecurityException("La cuenta debe estar registrada y autenticada.");
+        }
         this.usuario = usuario;
     }
 
-    // Crea la identidad temporal de cajero usando el nombre ingresado para auditoría.
+    // Compatibilidad con clientes anteriores: ya no se permite acceso sin clave.
+    @Deprecated
     public void iniciarComoCajero(String nombreCajero){
-        Objects.requireNonNull(nombreCajero, "Falta el nombre del cajero.");
-
-        String nombreLimpio = nombreCajero.trim();
-        if (nombreLimpio.isEmpty() || nombreLimpio.length() > 100){
-            throw new IllegalArgumentException("El nombre del cajero debe tener entre 1 y 100 caracteres.");
-        }
-
-        Usuario cajero = new Usuario(0, nombreLimpio, hashCajeroTemporal, Rol.CAJERO, true);
-
-        iniciar(cajero);
+        throw new SecurityException("El cajero debe iniciar sesión con usuario y clave.");
     }
 
     // Cierra la sesión actual.

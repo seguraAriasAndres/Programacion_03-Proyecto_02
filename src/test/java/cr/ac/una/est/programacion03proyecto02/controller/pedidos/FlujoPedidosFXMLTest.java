@@ -16,6 +16,9 @@ import cr.ac.una.est.programacion03proyecto02.persistence.dao.catalogo.*;
 import cr.ac.una.est.programacion03proyecto02.persistence.dao.inventario.*;
 import cr.ac.una.est.programacion03proyecto02.persistence.dao.pedidos.ReciboDAO;
 import cr.ac.una.est.programacion03proyecto02.view.navigation.NavegadorVistas;
+import cr.ac.una.est.programacion03proyecto02.view.personalizacion.MarcaVentana;
+import cr.ac.una.est.programacion03proyecto02.view.personalizacion.TemaVisual;
+import cr.ac.una.est.programacion03proyecto02.support.JavaFxTestSupport;
 import javafx.application.Platform;
 import javafx.scene.Parent;
 import javafx.scene.control.*;
@@ -40,24 +43,35 @@ class FlujoPedidosFXMLTest {
     private int cobros;
     private boolean perderRespuestaCobro;
     private CountDownLatch liberarCobro;
+    private CountDownLatch disponibilidadConsultada;
+    private boolean stockDisponible = true;
+    private boolean extraSinReceta;
+    private boolean variosExtras;
+    private CountDownLatch liberarDisponibilidad;
     private static final long PRODUCTO_ID=6_000_000_001L, OPCION_ID=7_000_000_001L;
     private final ConexionDB conexiones = new ConexionDB() {
         @Override public Connection getConnection() { throw new AssertionError("Las pruebas FXML no deben abrir conexiones reales."); }
     };
 
     @BeforeAll static void iniciarJavaFX() throws Exception {
-        CountDownLatch listo = new CountDownLatch(1);
-        try { Platform.startup(() -> { Platform.setImplicitExit(false); listo.countDown(); }); }
-        catch (IllegalStateException yaIniciado) { Platform.runLater(listo::countDown); }
-        assertTrue(listo.await(10,TimeUnit.SECONDS));
+        JavaFxTestSupport.iniciar();
     }
-    @AfterAll static void terminarJavaFX() { Platform.exit(); }
 
     @BeforeEach void preparar() throws Exception {
         inventarioService inventario = new inventarioService(conexiones,new ingredienteDAO(),new movimientoStockDAO());
         catalogoService catalogo = new catalogoService(conexiones,new productoDAO(),new categoriaDAO(),inventario) {
             @Override public List<Categoria> listarCategorias() { segundoPlano(); return List.of(new Categoria(1,"Comidas",true)); }
             @Override public List<Producto> listarProductosActivos() { segundoPlano(); return List.of(producto()); }
+            @Override public boolean hayStockSuficientePara(long id,List<Long> opciones,int cantidad) {
+                segundoPlano();
+                assertEquals(PRODUCTO_ID,id);
+                if(disponibilidadConsultada!=null) disponibilidadConsultada.countDown();
+                if(liberarDisponibilidad!=null)try {liberarDisponibilidad.await(10,TimeUnit.SECONDS);}catch(InterruptedException e){Thread.currentThread().interrupt();}
+                return stockDisponible;
+            }
+            @Override public boolean hayStockSuficientePara(long id,Map<Long,Integer> opciones,int cantidad) {
+                return hayStockSuficientePara(id,List.copyOf(opciones.keySet()),cantidad);
+            }
         };
         PedidoRepository repositorio = new PedidoRepository(conexiones) {
             @Override public synchronized void recargarActivos() { }
@@ -206,8 +220,245 @@ class FlujoPedidosFXMLTest {
         esperar("#lblIdRecibo");
     }
 
+    @Test void nombreInvalidoPermiteCorregirYCrearSinBloqueo() throws Exception {
+        fx(() -> navegador.abrirPedido(0)); esperar("#tblProductos");
+        fx(() -> {
+            texto("txtCliente","x".repeat(151)); boton("btnCrear").fire();
+            assertTrue(label("lblEstado").getText().contains("150"));
+            assertTrue(pedidos.datos.isEmpty());
+            assertFalse(boton("btnCrear").isDisabled());
+            texto("txtCliente","Ana"); boton("btnCrear").fire();
+        });
+        esperar("#tblLineas");
+        fx(() -> assertEquals(1,pedidos.datos.size()));
+    }
+
+    @Test void primerProductoPuedeCrearElPedidoSinUnBorradorPrevio()throws Exception {
+        fx(()->navegador.abrirPedido(0));esperar("#tblProductos");
+        fx(()->{texto("txtCliente","Ana");seleccionarProducto();assertFalse(boton("btnAgregar").isDisabled());boton("btnAgregar").fire();});
+        esperar("#tblLineas");
+        fx(()->assertEquals(1,tabla("tblLineas").getItems().size()));
+    }
+
+    @Test void guardarBorradorPermiteSalirYRecuperarLineasYExtrasSinConfirmar()throws Exception {
+        nuevoConProducto();
+        fx(()->{seleccionarProducto();boton("btnAgregar").fire();});esperar("#tblLineas");
+        fx(()->{assertFalse(boton("btnGuardarBorrador").isDisabled());boton("btnGuardarBorrador").fire();});esperar("#tblPedidos");
+        fx(()->{
+            Pedido guardado=(Pedido)tabla("tblPedidos").getItems().getFirst();
+            assertFalse(guardado.isConfirmado());assertEquals(1,guardado.getLineas().size());
+            assertEquals(List.of(OPCION_ID),guardado.getLineas().getFirst().getOpcionIds());
+            tabla("tblPedidos").getSelectionModel().selectFirst();boton("btnAbrir").fire();
+        });esperar("#tblLineas");
+        fx(()->{assertEquals(1,tabla("tblLineas").getItems().size());assertFalse(boton("btnConfirmar").isDisabled());});
+    }
+
+    @Test void extrasSinRecetaSeMuestranConExplicacionEnLugarDeDesaparecer()throws Exception {
+        extraSinReceta=true;nuevoConProducto();
+        fx(()->{
+            tabla("tblProductos").getSelectionModel().selectFirst();root().applyCss();root().layout();
+            ListView<?> opciones=(ListView<?>)nodo("lstOpciones");assertEquals(1,opciones.getItems().size());
+            assertTrue(opciones.lookupAll(".check-box").stream().anyMatch(javafx.scene.Node::isDisabled));
+            assertTrue(opciones.lookupAll(".label").stream().anyMatch(n->n instanceof Label l && l.getText().contains("Configure sus ingredientes")));
+        });
+    }
+
+    @Test void actualizarCatalogoConservaProductoYOpcionesSeleccionadas()throws Exception {
+        nuevoConProducto();fx(()->{seleccionarProducto();boton("btnActualizarCatalogo").fire();});esperar("#tblProductos");
+        fx(()->{
+            assertNotNull(tabla("tblProductos").getSelectionModel().getSelectedItem());
+            assertEquals(OPCION_ID,((OpcionProducto)((ListView<?>)nodo("lstOpciones")).getSelectionModel().getSelectedItem()).getId());
+        });
+    }
+
+    @Test void puedeGuardarYSalirAunqueLaConsultaDeStockTodaviaNoResponda()throws Exception {
+        nuevoConProducto();liberarDisponibilidad=new CountDownLatch(1);disponibilidadConsultada=new CountDownLatch(1);
+        try {
+            fx(this::seleccionarProducto);assertTrue(disponibilidadConsultada.await(10,TimeUnit.SECONDS));
+            fx(()->{
+                assertFalse(root().isDisabled(),"Una consulta de stock no debe bloquear la salida.");
+                assertFalse(boton("btnGuardarBorrador").isDisabled());boton("btnGuardarBorrador").fire();
+            });esperar("#tblPedidos");
+            fx(()->assertEquals(1,tabla("tblPedidos").getItems().size()));
+        } finally {liberarDisponibilidad.countDown();}
+    }
+
+    @Test void editarUnPedidoPermiteVolverYGuardarUnBorradorNuevoSinLineas()throws Exception {
+        fx(()->navegador.abrirPedido(0));esperar("#tblProductos");
+        fx(()->{texto("txtCliente","Ana");boton("btnGuardarBorrador").fire();});esperar("#tblPedidos");
+        fx(()->{tabla("tblPedidos").getSelectionModel().selectFirst();boton("btnAbrir").fire();});esperar("#tblLineas");
+        fx(()->boton("btnVolver").fire());esperar("#tblPedidos");
+    }
+
+    @Test void borradorNuevoMuestraVolverYGuardarEnUnaVentanaDePocaAltura()throws Exception {
+        fx(()->navegador.abrirPedido(0));esperar("#tblProductos");
+        fx(()->ventana.setHeight(620));
+        boolean compacta=false;
+        for(int i=0;i<100;i++) {
+            boolean[] ajustada={false};fx(()->ajustada[0]=ventana.getScene().getHeight()<=620);
+            if(ajustada[0]){compacta=true;break;}Thread.sleep(20);
+        }
+        assertTrue(compacta,"La ventana de prueba debe reducir realmente su altura antes de comprobar el diseño.");
+        fx(()->{
+            root().applyCss();root().layout();
+            assertTrue(root().getLayoutBounds().getHeight()<=ventana.getScene().getHeight()+1,"La raíz no debe desbordar la ventana.");
+            var agregar=boton("btnAgregar");var tarjeta=agregar.getParent().getParent();
+            assertTrue(agregar.localToScene(agregar.getBoundsInLocal()).getMaxY()<=tarjeta.localToScene(tarjeta.getBoundsInLocal()).getMaxY()+1,
+                    "Los controles deben caber en su tarjeta aunque el contenido central requiera desplazamiento.");
+            for(String id:List.of("btnVolver","btnGuardarBorrador","btnConfirmar","btnCobrar")) {
+                Button accion=boton(id);var limites=accion.localToScene(accion.getBoundsInLocal());
+                assertTrue(limites.getMinY()>=0 && limites.getMaxY()<=ventana.getScene().getHeight()+1,id+" debe quedar dentro de la ventana.");
+            }
+            assertFalse(boton("btnVolver").isDisabled());
+            assertTrue(boton("btnVolver").isCancelButton(),"Escape también debe permitir volver.");
+            texto("txtCliente","Cliente todavía sin guardar");capturar("borrador_nuevo_compacto");boton("btnVolver").fire();
+        });esperar("#tblPedidos");
+        fx(()->assertTrue(pedidos.datos.isEmpty(),"Volver antes de guardar no debe crear un pedido."));
+    }
+
+    @Test void eligeVariosExtrasSinCtrlYGuardaLaCantidadDeCadaUno()throws Exception {
+        variosExtras=true;nuevoConProducto();
+        fx(()->{
+            tabla("tblProductos").getSelectionModel().selectFirst();root().applyCss();root().layout();
+            marcarExtra("Queso");root().applyCss();root().layout();marcarExtra("Papas");root().applyCss();root().layout();
+            ListView<?> lista=(ListView<?>)nodo("lstOpciones");assertEquals(2,lista.getSelectionModel().getSelectedItems().size());
+            Spinner<Integer> unidades=(Spinner<Integer>)lista.lookupAll(".spinner").stream()
+                    .filter(n->"Cantidad de Queso por producto".equals(n.getAccessibleText())).findFirst().orElseThrow();
+            unidades.getValueFactory().setValue(2);boton("btnAgregar").fire();
+        });esperar("#tblLineas");
+        fx(()->{
+            lineaPedido linea=(lineaPedido)tabla("tblLineas").getItems().getFirst();
+            assertEquals(Map.of(OPCION_ID,2,OPCION_ID+1,1),linea.getCantidadesOpciones());
+            assertEquals("1003.00",label("lblTotal").getText());
+        });
+    }
+
+    @Test void cancelarPedidoTieneTextoLegibleEnElDisenoPersonalizado()throws Exception {
+        nuevoConProducto();fx(()->boton("btnVolver").fire());esperar("#tblPedidos");
+        fx(()->{
+            navegador.alternarTema();navegador.alternarTema();tabla("tblPedidos").getSelectionModel().selectFirst();root().applyCss();root().layout();
+            Button cancelar=boton("btnCancelar");assertEquals("Cancelar",cancelar.getText());
+            assertEquals(javafx.scene.paint.Color.WHITE,cancelar.getTextFill());
+            assertTrue(cancelar.getWidth()>=cancelar.prefWidth(-1)-1);
+        });
+    }
+
+    private void marcarExtra(String nombre) {
+        ((ListView<?>)nodo("lstOpciones")).lookupAll(".check-box").stream().map(n->(CheckBox)n)
+                .filter(c->c.getText().startsWith(nombre+" (")).findFirst().orElseThrow().fire();
+    }
+
+    @Test void quitarExtrasDescartaLaConsultaAnteriorYSinBloquearAgregar()throws Exception {
+        nuevoConProducto();liberarDisponibilidad=new CountDownLatch(1);disponibilidadConsultada=new CountDownLatch(1);stockDisponible=false;
+        try {
+            fx(this::seleccionarProducto);assertTrue(disponibilidadConsultada.await(10,TimeUnit.SECONDS));
+            fx(()->{
+                ((ListView<?>)nodo("lstOpciones")).getSelectionModel().clearSelection();
+                assertFalse(boton("btnAgregar").isDisabled());
+            });
+            liberarDisponibilidad.countDown();Thread.sleep(450);
+            fx(()->assertFalse(boton("btnAgregar").isDisabled(),"La respuesta anterior no debe marcar sin stock la receta base."));
+        } finally {liberarDisponibilidad.countDown();}
+    }
+
+    @Test void validacionDeDatosNoExigeRecargarNiRepetirUnaEscritura() throws Exception {
+        nuevoConProducto(); pedidos.validacionAgregar=true;
+        fx(() -> { seleccionarProducto(); boton("btnAgregar").fire(); }); esperar("#tblLineas");
+        fx(() -> {
+            assertFalse(boton("btnAgregar").isDisabled());
+            assertTrue(tabla("tblLineas").getItems().isEmpty());
+            assertEquals(0,pedidos.agregados);
+            pedidos.validacionAgregar=false;
+            boton("btnAgregar").fire();
+        });
+        esperar("#tblLineas");
+        fx(() -> assertEquals(1,pedidos.agregados));
+    }
+
+    @Test void disponibilidadDeOpcionesSinStockImpideAgregar() throws Exception {
+        nuevoConProducto(); stockDisponible=false; disponibilidadConsultada=new CountDownLatch(1);
+        fx(this::seleccionarProducto);
+        assertTrue(disponibilidadConsultada.await(10,TimeUnit.SECONDS));
+        esperar("#tblProductos");
+        fx(() -> {
+            assertTrue(boton("btnAgregar").isDisabled());
+            assertTrue(label("lblEstado").getText().contains("No hay stock"));
+            assertEquals(0,pedidos.agregados);
+        });
+    }
+
+    @Test void cssEsValidoSinAsociarloALasPantallas() throws Exception {
+        fx(() -> {
+            javafx.css.CssParser.errorsProperty().clear();
+            try {
+                for (TemaVisual tema : TemaVisual.values()) {
+                    String archivo=tema.getArchivo();
+                    var url=getClass().getResource("/cr/ac/una/est/programacion03proyecto02/view/" + archivo);
+                    assertNotNull(url, archivo);
+                    var hoja=new javafx.css.CssParser().parse(url);
+                    assertFalse(hoja.getRules().isEmpty(), archivo);
+                }
+                assertTrue(javafx.css.CssParser.errorsProperty().isEmpty(),
+                        () -> javafx.css.CssParser.errorsProperty().toString());
+            } catch(java.io.IOException e){throw new java.io.UncheckedIOException(e);}
+        });
+    }
+
+    @Test void iconoPersonalizadoPuedeVolverANeutralSinActivarCSS() throws Exception {
+        fx(() -> {
+            ventana.setScene(new javafx.scene.Scene(new javafx.scene.layout.StackPane()));
+            MarcaVentana.aplicar(ventana, MarcaVentana.Marca.PARADA_DEL_PUENTE);
+            assertEquals(List.of(16.0,32.0,64.0,256.0), ventana.getIcons().stream().map(javafx.scene.image.Image::getWidth).toList());
+            assertTrue(ventana.getIcons().stream().noneMatch(javafx.scene.image.Image::isError));
+            MarcaVentana.aplicar(ventana, MarcaVentana.Marca.PARADA_DEL_PUENTE);
+            assertEquals(4, ventana.getIcons().size(), "Cambiar la marca no debe duplicar los iconos");
+            MarcaVentana.aplicar(ventana, MarcaVentana.Marca.NEUTRAL);
+            assertTrue(ventana.getIcons().isEmpty());
+            assertTrue(ventana.getScene().getStylesheets().isEmpty());
+        });
+    }
+
+    @Test void configuracionDeMarcaEsNeutralPorDefectoYRechazaErrores() {
+        String anterior = System.getProperty(MarcaVentana.PROPIEDAD);
+        try {
+            System.clearProperty(MarcaVentana.PROPIEDAD);
+            assertEquals(MarcaVentana.Marca.NEUTRAL, MarcaVentana.desdeConfiguracion());
+            System.setProperty(MarcaVentana.PROPIEDAD, "parada-del-puente");
+            assertEquals(MarcaVentana.Marca.PARADA_DEL_PUENTE, MarcaVentana.desdeConfiguracion());
+            System.setProperty(MarcaVentana.PROPIEDAD, "neutral");
+            assertEquals(MarcaVentana.Marca.NEUTRAL, MarcaVentana.desdeConfiguracion());
+            System.setProperty(MarcaVentana.PROPIEDAD, "marca-inexistente");
+            assertThrows(IllegalArgumentException.class, MarcaVentana::desdeConfiguracion);
+        } finally {
+            if (anterior == null) System.clearProperty(MarcaVentana.PROPIEDAD);
+            else System.setProperty(MarcaVentana.PROPIEDAD, anterior);
+        }
+    }
+
     private void capturar(String nombre) {
         if (!Boolean.getBoolean("pruebas.capturas")) return;
+        guardarCaptura(nombre);
+        if (!Boolean.getBoolean("pruebas.temas")) return;
+        var hojasOriginales = List.copyOf(ventana.getScene().getStylesheets());
+        try {
+            for (TemaVisual variante : TemaVisual.values()) {
+                var url = Objects.requireNonNull(getClass().getResource(
+                        "/cr/ac/una/est/programacion03proyecto02/view/"+TemaVisual.FRIO.getArchivo()));
+                ventana.getScene().getStylesheets().setAll(url.toExternalForm());
+                if (variante!=TemaVisual.FRIO) ventana.getScene().getStylesheets().add(Objects.requireNonNull(
+                        getClass().getResource("/cr/ac/una/est/programacion03proyecto02/view/" + variante.getArchivo())).toExternalForm());
+                root().applyCss();
+                root().layout();
+                guardarCaptura(nombre + "_parada_" + variante.name().toLowerCase(java.util.Locale.ROOT));
+            }
+        } finally {
+            ventana.getScene().getStylesheets().setAll(hojasOriginales);
+            root().applyCss();
+            root().layout();
+        }
+    }
+
+    private void guardarCaptura(String nombre) {
         javafx.scene.image.WritableImage imagen=root().snapshot(null,null);
         int ancho=(int)imagen.getWidth(),alto=(int)imagen.getHeight();
         byte[] pixeles=new byte[ancho*alto*4];
@@ -253,7 +504,10 @@ class FlujoPedidosFXMLTest {
     private Producto producto() {
         Producto p=new Producto(PRODUCTO_ID,"Hamburguesa",new BigDecimal("1000.00"),new Categoria(1,"Comidas",true),true);
         p.setDisponible(true);
-        p.getOpciones().add(new OpcionProducto(OPCION_ID,"Queso",TipoOpcion.EXTRA,new BigDecimal("0.50"),true));
+        OpcionProducto extra=new OpcionProducto(OPCION_ID,"Queso",TipoOpcion.EXTRA,new BigDecimal("0.50"),true);
+        if(extraSinReceta)extra.setOrigenDisponible(false);
+        p.getOpciones().add(extra);
+        if(variosExtras)p.getOpciones().add(new OpcionProducto(OPCION_ID+1,"Papas",TipoOpcion.EXTRA,new BigDecimal("2.00"),true));
         return p;
     }
 
@@ -262,17 +516,29 @@ class FlujoPedidosFXMLTest {
         private long siguiente=3_000_000_000L, lineaId=4_000_000_000L;
         private int agregados;
         private boolean fallarAgregar;
+        private boolean validacionAgregar;
         PedidosSimulados(catalogoService c,inventarioService i,PedidoRepository r) throws SQLException { super(conexiones,c,i,r); }
         @Override public Pedido crear(String nombre,String usuario) { segundoPlano();Pedido p=new Pedido(++siguiente,nombre);datos.put(p.getIdPedido(),p);return copiar(p); }
+        @Override public Pedido crearConLinea(String cliente,Long productoId,List<Long> opciones,int cantidad,String usuario)throws SQLException {
+            Pedido p=crear(cliente,usuario);agregarLinea(p.getIdPedido(),productoId,opciones,cantidad,usuario);return copiar(datos.get(p.getIdPedido()));
+        }
+        @Override public Pedido crearConLinea(String cliente,Long productoId,Map<Long,Integer> opciones,int cantidad,String usuario)throws SQLException {
+            Pedido p=crear(cliente,usuario);agregarLinea(p.getIdPedido(),productoId,opciones,cantidad,usuario);return copiar(datos.get(p.getIdPedido()));
+        }
         @Override public Pedido obtener(Long id) { segundoPlano();return datos.get(id)==null?null:copiar(datos.get(id)); }
         @Override public List<Pedido> listarActivos() {
             segundoPlano();return datos.values().stream().filter(p->p.getEstadoPreparacion()!=EstadoPreparacion.CANCELADO
                     && !(p.getEstadoPreparacion()==EstadoPreparacion.ENTREGADO&&p.getEstadoPago()==EstadoPago.PAGADO)).map(this::copiar).toList();
         }
         @Override public void agregarLinea(long id,Long productoId,List<Long> opciones,int cantidad,String usuario) throws SQLException {
-            segundoPlano();if(fallarAgregar)throw new SQLException("Fallo simulado");agregados++;
+            agregarLinea(id,productoId,CantidadesOpciones.unaPorId(opciones),cantidad,usuario);
+        }
+        @Override public void agregarLinea(long id,Long productoId,Map<Long,Integer> opciones,int cantidad,String usuario) throws SQLException {
+            segundoPlano();if(fallarAgregar)throw new SQLException("Fallo simulado");
+            if(validacionAgregar)throw new IllegalArgumentException("Opciones invalidas");
+            agregados++;
             Producto p=producto();
-            datos.get(id).agregarLinea(new lineaPedido(++lineaId,p,p.getOpciones().stream().filter(o->opciones.contains(o.getId())).toList(),cantidad));
+            datos.get(id).agregarLinea(new lineaPedido(++lineaId,p,p.getOpciones().stream().filter(o->opciones.containsKey(o.getId())).toList(),opciones,cantidad));
         }
         @Override public void quitarLinea(Long id,Long linea,String usuario) { segundoPlano();Pedido p=datos.get(id);p.eliminarLinea(p.getLineas().stream().filter(l->l.getId()==linea).findFirst().orElseThrow()); }
         @Override public void confirmar(Long id,String usuario) { segundoPlano();datos.get(id).confirmar(); }

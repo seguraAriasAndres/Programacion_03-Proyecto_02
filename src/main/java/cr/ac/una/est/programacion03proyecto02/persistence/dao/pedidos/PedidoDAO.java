@@ -439,7 +439,7 @@ public class PedidoDAO {
                     || !a.getNombreProducto().equals(b.getNombreProducto())
                     || !a.getNombreCategoria().equals(b.getNombreCategoria())
                     || !a.getDescripcionExtras().equals(b.getDescripcionExtras())
-                    || !new java.util.HashSet<>(a.getOpcionIds()).equals(new java.util.HashSet<>(b.getOpcionIds()))) {
+                    || !a.getCantidadesOpciones().equals(b.getCantidadesOpciones())) {
                 throw new IllegalArgumentException("Las lineas no coinciden con las guardadas; guardar primero el borrador.");
             }
         }

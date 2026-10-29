@@ -7,6 +7,7 @@ import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.Producto;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 public interface ICatalogoService {
 
@@ -18,6 +19,18 @@ public interface ICatalogoService {
 
     // Comprueba la disponibilidad dentro de una conexión compartida.
     boolean hayStockSuficientePara(long productoId, List<Long> opcionesId, int cantidad, Connection conexion) throws SQLException;
+
+    default boolean hayStockSuficientePara(long productoId,Map<Long,Integer> extras,int cantidad)throws SQLException {
+        Map<Long,Integer> validadas=cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.CantidadesOpciones.validar(extras);
+        if(validadas.values().stream().anyMatch(n->n!=1))throw new UnsupportedOperationException("El catálogo debe comprobar las cantidades de extras.");
+        return hayStockSuficientePara(productoId,List.copyOf(validadas.keySet()),cantidad);
+    }
+
+    default boolean hayStockSuficientePara(long productoId,Map<Long,Integer> extras,int cantidad,Connection conexion)throws SQLException {
+        Map<Long,Integer> validadas=cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.CantidadesOpciones.validar(extras);
+        if(validadas.values().stream().anyMatch(n->n!=1))throw new UnsupportedOperationException("El catálogo debe comprobar las cantidades de extras.");
+        return hayStockSuficientePara(productoId,List.copyOf(validadas.keySet()),cantidad,conexion);
+    }
 
     List<Categoria> listarCategorias() throws SQLException;
 

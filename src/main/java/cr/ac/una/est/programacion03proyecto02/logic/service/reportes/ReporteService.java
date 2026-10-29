@@ -21,11 +21,33 @@ import java.util.TreeMap;
  * y agrega los totales; no abre conexiones ni ejecuta SQL.
  */
 public class ReporteService {
+    public record Resumen(BigDecimal ingresos,Map<String,BigDecimal> categorias,List<ProductoRanking> ranking,List<Pedido> historial) { }
 
     private final IConsultaVentas ventas;
 
     public ReporteService(IConsultaVentas ventas) {
         this.ventas = Objects.requireNonNull(ventas, "Falta la consulta de ventas.");
+    }
+
+    /** Una sola lectura y una sola instantánea para los cuatro componentes del reporte. */
+    public Resumen resumen(LocalDateTime desde,LocalDateTime hasta)throws SQLException {
+        validarRango(desde,hasta);
+        List<Pedido> historial=List.copyOf(ventas.pedidosPagadosEntre(desde,hasta));
+        BigDecimal ingresos=BigDecimal.ZERO;
+        Map<String,BigDecimal> categorias=new TreeMap<>();
+        Map<Long,Long> unidades=new HashMap<>(); Map<Long,String> nombres=new HashMap<>();
+        for(Pedido pedido:historial) {
+            ingresos=ingresos.add(pedido.calcularTotal());
+            for(lineaPedido linea:pedido.getLineas()) {
+                categorias.merge(linea.getNombreCategoria(),linea.calcularSubtotal(),BigDecimal::add);
+                unidades.merge(linea.getProductoId(),(long)linea.getCantidad(),Math::addExact);
+                nombres.put(linea.getProductoId(),linea.getNombreProducto());
+            }
+        }
+        List<ProductoRanking> ranking=new ArrayList<>();
+        unidades.forEach((id,cantidad)->ranking.add(new ProductoRanking(id,nombres.get(id),cantidad)));
+        ranking.sort(Comparator.comparingLong(ProductoRanking::getUnidades).reversed().thenComparingLong(ProductoRanking::getProductoId));
+        return new Resumen(ingresos,java.util.Collections.unmodifiableMap(categorias),List.copyOf(ranking),historial);
     }
 
     public BigDecimal ingresosBrutos(LocalDateTime desde, LocalDateTime hasta) throws SQLException {
