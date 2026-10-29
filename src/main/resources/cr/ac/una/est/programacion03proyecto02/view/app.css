@@ -1,3 +1,17 @@
+/* ==========================================================================
+   Hoja de estilos neutra de la aplicación (tema base).
+
+   Cómo personalizar para un restaurante específico SIN tocar FXML ni Java:
+   1. Copie este archivo, por ejemplo a "app-restaurante-x.css", en esta misma
+      carpeta (cr/ac/una/est/programacion03proyecto02/view/).
+   2. Cambie SOLO las variables del bloque .root de abajo (colores, acento,
+      fondos y textos). El resto de la hoja las reutiliza.
+   3. En HelloApplication, antes de mostrar la primera pantalla, indique el
+      tema: navegador.usarHojaEstilos("app-restaurante-x.css").
+
+   Los FXML no referencian esta hoja: el navegador la adjunta a cada escena.
+   ========================================================================== */
+
 .root{
     -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     -fx-font-size: 13px;
@@ -29,6 +43,12 @@
 
 .section-title{
     -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-color-primary;
+}
+
+.metric-value{
+    -fx-font-size: 26px;
     -fx-font-weight: bold;
     -fx-text-fill: -fx-text-color-primary;
 }
@@ -71,7 +91,23 @@ HBox{
     -fx-border-radius: 6px;
 }
 
+.action-group{
+    -fx-padding: 8px 10px;
+    -fx-spacing: 7px;
+    -fx-background-color: -fx-primary-color;
+    -fx-background-radius: 6px;
+    -fx-border-color: -fx-border-color-soft;
+    -fx-border-radius: 6px;
+}
+
+.action-group-title{
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-color-secondary;
+}
+
 .button{
+    -fx-min-height: 36px;
     -fx-padding: 8px 14px;
     -fx-font-size: 13px;
     -fx-font-weight: bold;
@@ -95,6 +131,20 @@ HBox{
 .button:focused{
     -fx-border-color: -fx-accent-color;
     -fx-border-width: 2px;
+}
+
+.icono{
+    -fx-fill: -fx-text-color-primary;
+}
+
+.button-primary .icono,
+.button-accent .icono,
+.button-danger .icono{
+    -fx-fill: #ffffff;
+}
+
+.button-warning .icono{
+    -fx-fill: #704b15;
 }
 
 .button-primary{
@@ -129,6 +179,61 @@ HBox{
     -fx-border-color: -fx-accent-color-hover;
 }
 
+.module-card{
+    -fx-min-width: 320px;
+    -fx-min-height: 150px;
+    -fx-padding: 16px 20px;
+    -fx-font-size: 16px;
+    -fx-text-fill: -fx-text-color-primary;
+    -fx-background-color: -fx-primary-color;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+}
+
+.module-card:hover{
+    -fx-background-color: -fx-primary-color;
+    -fx-border-color: -fx-accent-color;
+}
+
+.module-card .icono{
+    -fx-fill: -fx-accent-color;
+}
+
+.module-description{
+    -fx-font-size: 12px;
+    -fx-font-weight: normal;
+    -fx-text-fill: -fx-text-color-secondary;
+}
+
+.module-card.button-accent{
+    -fx-background-color: -fx-accent-color;
+    -fx-border-color: -fx-accent-color;
+    -fx-text-fill: #ffffff;
+}
+
+.module-card.button-accent:hover{
+    -fx-background-color: -fx-accent-color-hover;
+    -fx-border-color: -fx-accent-color-hover;
+}
+
+.module-card.button-accent .icono{
+    -fx-fill: #ffffff;
+}
+
+.module-card.button-accent .module-description{
+    -fx-text-fill: #e2eaf0;
+}
+
+.button-warning{
+    -fx-text-fill: #704b15;
+    -fx-background-color: #f4dfad;
+    -fx-border-color: #e0c27d;
+}
+
+.button-warning:hover{
+    -fx-background-color: #ecd293;
+}
+
 .button-danger{
     -fx-text-fill: #ffffff;
     -fx-background-color: #b54747;
@@ -145,6 +250,7 @@ HBox{
 .combo-box,
 .choice-box,
 .date-picker{
+    -fx-min-height: 36px;
     -fx-padding: 7px 9px;
     -fx-font-size: 13px;
     -fx-text-fill: -fx-text-color-primary;
@@ -189,6 +295,7 @@ HBox{
 
 .list-cell,
 .table-row-cell{
+    -fx-cell-size: 36px;
     -fx-padding: 7px 9px;
     -fx-background-color: #ffffff;
     -fx-text-fill: -fx-text-color-primary;
@@ -212,7 +319,7 @@ HBox{
 
 .table-view .column-header,
 .table-view .filler{
-    -fx-size: 36px;
+    -fx-size: 40px;
     -fx-background-color: transparent;
     -fx-border-color: transparent transparent -fx-border-color-soft transparent;
 }
@@ -258,6 +365,37 @@ HBox{
 
 .status-accent{
     -fx-text-fill: #087b89;
+}
+
+.stock-pill{
+    -fx-padding: 4px 9px;
+    -fx-background-radius: 12px;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.stock-low,
+.status-warning{
+    -fx-text-fill: #8b5a13;
+    -fx-background-color: #fff0d0;
+}
+
+.stock-ok,
+.availability-available,
+.status-success{
+    -fx-text-fill: #216442;
+    -fx-background-color: #e1f2e8;
+}
+
+.availability-unavailable,
+.status-error{
+    -fx-text-fill: #9d3434;
+    -fx-background-color: #f8e2e0;
+}
+
+.status-neutral{
+    -fx-text-fill: -fx-text-color-secondary;
+    -fx-background-color: #edf0f2;
 }
 
 .tooltip{

@@ -93,6 +93,18 @@ y cobro; catalogo e inventario siguen pendientes de que su modulo ejecute su scr
 ejecuta al compilar o iniciar la aplicacion; puedes crear el schema en Workbench.
 Esta configuracion tampoco crea, modifica ni elimina tablas o registros.
 
+## Primer ingreso (usuarios semilla)
+
+`04_usuarios.sql` da de alta los dos usuarios con los que se entra desde la
+aplicacion: `admin` con clave `admin1234` (rol ADMIN) y `stock` con clave
+`stock1234` (rol STOCK_MANAGER). Ejecutelo una vez desde Workbench; es idempotente
+(`INSERT IGNORE`). Cambie las claves apenas entre. El cajero no usa usuario:
+escribe su nombre en la pantalla de inicio y no requiere clave.
+
+Para generar el hash de una clave nueva, corra el main de
+`logic.service.seguridad.GeneradorHash` con la clave como argumento y pegue
+la salida en un INSERT igual a los de `04_usuarios.sql`.
+
 ## Comprobaciones
 
 Las pruebas de modelos siguen ejecutandose sin base de datos:

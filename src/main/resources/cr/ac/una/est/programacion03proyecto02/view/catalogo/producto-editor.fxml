@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import cr.ac.una.est.programacion03proyecto02.view.iconos.Icono?>
+
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.CheckBox?>
@@ -13,23 +15,23 @@
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.FlowPane?>
 
 <BorderPane fx:id="raiz" xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="cr.ac.una.est.programacion03proyecto02.controller.catalogo.ProductoEditorController"
             prefWidth="1000.0"
-            prefHeight="720.0">
+            prefHeight="740.0" styleClass="page-container">
 
     <top>
         <VBox spacing="12.0">
             <padding>
-                <Insets top="18.0" right="20.0" bottom="12.0" left="20.0"/>
+                <Insets top="0.0" right="0.0" bottom="8.0" left="0.0"/>
             </padding>
 
-            <Label text="Editor de producto"
-                   style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+            <Label text="Editor de producto" styleClass="page-title"/>
 
-            <GridPane hgap="10.0" vgap="10.0">
+            <GridPane hgap="12.0" vgap="10.0" styleClass="card">
                 <Label text="Nombre:"
                        GridPane.columnIndex="0"
                        GridPane.rowIndex="0"/>
@@ -70,15 +72,16 @@
         <ScrollPane fitToWidth="true"
                     hbarPolicy="NEVER">
             <content>
-                <VBox spacing="14.0">
+                <VBox spacing="12.0">
                     <padding>
-                        <Insets top="8.0" right="20.0" bottom="12.0" left="20.0"/>
+                        <Insets top="8.0" right="0.0" bottom="12.0" left="0.0"/>
                     </padding>
 
-                    <Label text="Opciones del producto"
-                           style="-fx-font-size: 15px; -fx-font-weight: bold;"/>
+                    <Label text="Opciones del producto" styleClass="section-title"/>
 
-                    <HBox spacing="8.0">
+                    <VBox spacing="8.0" styleClass="card">
+                        <Label text="Configurar opciones" styleClass="muted-text"/>
+                        <FlowPane hgap="8.0" vgap="8.0" alignment="CENTER_LEFT">
                         <TextField fx:id="txtNombreOpcion"
                                    promptText="Nombre de la opción"/>
                         <ComboBox fx:id="cmbTipoOpcion"
@@ -94,9 +97,10 @@
                         <Button fx:id="btnQuitarOpcion"
                                 text="Quitar opción"
                                 onAction="#onQuitarOpcion"/>
-                    </HBox>
+                        </FlowPane>
+                    </VBox>
 
-                    <TableView fx:id="tblOpciones" prefHeight="140.0">
+                    <TableView fx:id="tblOpciones" prefHeight="170.0">
                         <columns>
                             <TableColumn fx:id="colOpcionNombre"
                                          text="Nombre"
@@ -116,14 +120,18 @@
                         </columnResizePolicy>
                     </TableView>
 
-                    <Label text="Receta base"
-                           style="-fx-font-size: 15px; -fx-font-weight: bold;"/>
+                    <VBox spacing="8.0" styleClass="card">
+                        <Label text="Ingrediente y cantidad (compartidos por ambas recetas)" styleClass="section-title"/>
+                        <FlowPane hgap="8.0" vgap="8.0" alignment="CENTER_LEFT">
+                            <ComboBox fx:id="cmbIngrediente"
+                                      promptText="Ingrediente"/>
+                            <TextField fx:id="txtCantidadReceta"
+                                       promptText="Cantidad requerida"/>
+                        </FlowPane>
+                    </VBox>
 
-                    <HBox spacing="8.0">
-                        <ComboBox fx:id="cmbIngrediente"
-                                  promptText="Ingrediente"/>
-                        <TextField fx:id="txtCantidadReceta"
-                                   promptText="Cantidad requerida"/>
+                    <HBox spacing="10.0" alignment="CENTER_LEFT">
+                        <Label text="Receta base" styleClass="section-title" HBox.hgrow="ALWAYS"/>
                         <Button fx:id="btnAgregarBase"
                                 text="Agregar a receta base"
                                 onAction="#onAgregarIngredienteBase"/>
@@ -132,7 +140,7 @@
                                 onAction="#onQuitarIngredienteBase"/>
                     </HBox>
 
-                    <TableView fx:id="tblRecetaBase" prefHeight="120.0">
+                    <TableView fx:id="tblRecetaBase" prefHeight="150.0">
                         <columns>
                             <TableColumn fx:id="colBaseIngrediente"
                                          text="Ingrediente"
@@ -146,10 +154,10 @@
                         </columnResizePolicy>
                     </TableView>
 
-                    <Label text="Receta de la opción seleccionada"
-                           style="-fx-font-size: 15px; -fx-font-weight: bold;"/>
+                    <Label text="Receta de la opción seleccionada" styleClass="section-title"/>
 
-                    <HBox spacing="8.0">
+                    <HBox spacing="10.0" alignment="CENTER_LEFT" styleClass="toolbar">
+                        <Label text="Usa el ingrediente y cantidad seleccionados arriba." styleClass="muted-text" HBox.hgrow="ALWAYS" wrapText="true"/>
                         <Button fx:id="btnAgregarRecetaOpcion"
                                 text="Agregar ingrediente a opción"
                                 onAction="#onAgregarIngredienteOpcion"/>
@@ -158,7 +166,7 @@
                                 onAction="#onQuitarIngredienteOpcion"/>
                     </HBox>
 
-                    <TableView fx:id="tblRecetaOpcion" prefHeight="120.0">
+                    <TableView fx:id="tblRecetaOpcion" prefHeight="150.0">
                         <columns>
                             <TableColumn fx:id="colOpcionIngrediente"
                                          text="Ingrediente"
@@ -179,18 +187,19 @@
     <bottom>
         <VBox spacing="8.0">
             <padding>
-                <Insets top="8.0" right="20.0" bottom="15.0" left="20.0"/>
+                <Insets top="8.0" right="0.0" bottom="0.0" left="0.0"/>
             </padding>
 
-            <Label fx:id="lblMensaje"/>
+            <Label fx:id="lblMensaje" styleClass="status-message" wrapText="true"/>
 
             <HBox spacing="10.0">
                 <Button fx:id="btnGuardar"
                         text="Guardar producto"
-                        onAction="#onGuardar"/>
+                        onAction="#onGuardar"
+                        styleClass="button-primary"/>
                 <Button fx:id="btnVolver"
                         text="Volver"
-                        onAction="#onVolver"/>
+                        onAction="#onVolver" graphicTextGap="8.0"><graphic><Icono tipo="VOLVER"/></graphic></Button>
             </HBox>
         </VBox>
     </bottom>

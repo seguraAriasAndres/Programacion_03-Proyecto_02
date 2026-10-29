@@ -8,6 +8,7 @@ import cr.ac.una.est.programacion03proyecto02.logic.model.inventario.recetaItem;
 import cr.ac.una.est.programacion03proyecto02.logic.model.pedidos.Pedido;
 import cr.ac.una.est.programacion03proyecto02.logic.model.pedidos.enums.EstadoPago;
 import cr.ac.una.est.programacion03proyecto02.logic.model.pedidos.enums.EstadoPreparacion;
+import cr.ac.una.est.programacion03proyecto02.logic.model.pedidos.enums.MetodoPago;
 import cr.ac.una.est.programacion03proyecto02.logic.repository.pedidos.PedidoRepository;
 import cr.ac.una.est.programacion03proyecto02.logic.service.catalogo.ICatalogoService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.inventario.inventarioService;
@@ -338,7 +339,7 @@ class PedidoServiceTest {
     }
 
     @Test
-    void opcionAjenaRevierteSinCambiarSQLNiCache() {
+    void opcionAjenaRevierteSinCambiarSQLNiCache() throws Exception {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> servicio.agregarLinea(
@@ -363,7 +364,7 @@ class PedidoServiceTest {
     }
 
     @Test
-    void falloCommitRevierteLaLineaYNoPublicaIdsEnCache() {
+    void falloCommitRevierteLaLineaYNoPublicaIdsEnCache() throws Exception {
         fallarCommit = true;
 
         assertThrows(

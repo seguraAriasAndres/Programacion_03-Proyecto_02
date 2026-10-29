@@ -47,6 +47,9 @@ public class NavegadorVistas{
     private CobroService cobros;
     private IAutenticacionService autenticacion;
     private ReporteService reportes;
+    // Hoja de estilos por defecto; un tema de cliente la sustituye sin tocar los FXML.
+    private String hojaEstilos = rutaBase + "app.css";
+    private boolean temaCalido;
 
     // Guarda los servicios de pedidos y cobros que compartirán sus controladores.
     public void configurarPedidos(PedidoService pedidos, CobroService cobros){
@@ -72,6 +75,34 @@ public class NavegadorVistas{
                 evento.consume();
             }
         });
+    }
+
+    // Cambia la hoja de estilos de todas las pantallas. Una ruta inexistente
+    // vuelve al app.css neutro; un tema de cliente se copia desde ese archivo.
+    public void usarHojaEstilos(String ruta){
+        if (ruta == null || ruta.isBlank()){
+            throw new IllegalArgumentException("La ruta de la hoja de estilos no puede estar vacía.");
+        }
+        this.hojaEstilos = ruta.replace('\\', '/').startsWith("/")
+                ? ruta.replace('\\', '/')
+                : rutaBase + ruta.replace('\\', '/');
+    }
+
+    // Alterna entre la paleta fría existente y la paleta cálida.
+    public void alternarTema(){
+        exigirVentana();
+        temaCalido = !temaCalido;
+        if (ventana.getScene() != null){
+            String tema = getClass().getResource(rutaBase + "app-calido.css").toExternalForm();
+            ventana.getScene().getStylesheets().remove(tema);
+            if (temaCalido){
+                ventana.getScene().getStylesheets().add(tema);
+            }
+        }
+    }
+
+    public boolean esTemaCalido(){
+        return temaCalido;
     }
 
     // Abre la pantalla inicial pública.
@@ -263,10 +294,29 @@ public class NavegadorVistas{
                 configurarControlador.accept(controlador);
             }
 
-            ventana.setScene(new Scene(raiz));
+            Scene escena = new Scene(raiz);
+            aplicarEstilos(escena);
+            ventana.setScene(escena);
             ventana.show();
         } catch (IOException error){
             throw new IllegalStateException("No se pudo cargar la vista " + ruta, error);
+        }
+    }
+
+    // Adjunta la hoja de estilos a la escena; si falta, usa el tema neutro base.
+    private void aplicarEstilos(Scene escena){
+        URL hoja = getClass().getResource(hojaEstilos);
+        if (hoja == null){
+            hoja = getClass().getResource(rutaBase + "app.css");
+        }
+        if (hoja != null){
+            escena.getStylesheets().add(hoja.toExternalForm());
+        }
+        if (temaCalido){
+            URL tema = getClass().getResource(rutaBase + "app-calido.css");
+            if (tema != null){
+                escena.getStylesheets().add(tema.toExternalForm());
+            }
         }
     }
 

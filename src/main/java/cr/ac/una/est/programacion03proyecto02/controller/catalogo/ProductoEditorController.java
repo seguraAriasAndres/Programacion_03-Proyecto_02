@@ -78,6 +78,9 @@ public class ProductoEditorController {
     //configura las tablas y carga las categorías, ingredientes y tipos
     @FXML
     private void initialize() {
+        lblMensaje.visibleProperty().bind(lblMensaje.textProperty().isNotEmpty());
+        lblMensaje.managedProperty().bind(lblMensaje.visibleProperty());
+
         colOpcionNombre.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getNombre()));
         colOpcionTipo.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getTipo().name()));
         colOpcionPrecio.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import cr.ac.una.est.programacion03proyecto02.view.iconos.Icono?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane fx:id="raiz" styleClass="page-container"
+            xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="cr.ac.una.est.programacion03proyecto02.controller.seguridad.loginController"
+            prefWidth="820.0" prefHeight="520.0">
+    <center>
+        <VBox alignment="CENTER" spacing="16.0" styleClass="card" prefWidth="420.0" maxWidth="420.0">
+            <padding>
+                <Insets top="24.0" right="24.0" bottom="24.0" left="24.0"/>
+            </padding>
+
+            <Label text="Iniciar sesión" styleClass="page-title"/>
+            <Label fx:id="lblRol" styleClass="page-subtitle" wrapText="true"/>
+
+            <TextField fx:id="txtNombreUsuario" promptText="Usuario" maxWidth="Infinity"/>
+            <PasswordField fx:id="txtClave" promptText="Clave" maxWidth="Infinity"/>
+
+            <Button fx:id="btnIniciar" text="Ingresar" onAction="#onIniciar" styleClass="button-primary" maxWidth="Infinity"/>
+            <Button text="Volver al inicio" onAction="#onVolver" maxWidth="Infinity" graphicTextGap="8.0"><graphic><Icono tipo="VOLVER"/></graphic></Button>
+
+            <Label fx:id="lblMensaje" styleClass="status-message" maxWidth="Infinity" wrapText="true"/>
+        </VBox>
+    </center>
+</BorderPane>

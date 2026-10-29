@@ -34,7 +34,7 @@ public class menuController{
 
         Usuario usuario = sesion.getUsuario();
         Rol rol = usuario.getRol();
-        lblUsuario.setText(usuario.getNombreUsuario() + " — " + rol);
+        lblUsuario.setText(usuario.getNombreUsuario() + " - " + rol);
 
         boolean esAdmin = rol == Rol.ADMIN;
         boolean esCajero = rol == Rol.CAJERO;

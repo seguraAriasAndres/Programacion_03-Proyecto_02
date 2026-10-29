@@ -42,6 +42,9 @@ public class CategoriasController {
     //configura las columnas, la selección y carga las categorías
     @FXML
     private void initialize() {
+        lblMensaje.visibleProperty().bind(lblMensaje.textProperty().isNotEmpty());
+        lblMensaje.managedProperty().bind(lblMensaje.visibleProperty());
+
         colCategoriaId.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getId()));
 
         colCategoriaNombre.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getNombre()));
@@ -95,6 +98,12 @@ public class CategoriasController {
         } catch (RuntimeException error) {
             mostrarError("No se pudo guardar la categoría.", error);
         }
+    }
+
+    //regresa al menú
+    @FXML
+    private void onVolver() {
+        navegador.mostrarMenu();
     }
 
     //copia los valores de una categoría seleccionada al formulario
