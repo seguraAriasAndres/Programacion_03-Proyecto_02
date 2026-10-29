@@ -91,6 +91,17 @@ public class ProductosController {
         }, error -> mostrarError("No se pudieron cargar los productos.", error));
     }
 
+    //abre la administración de categorías
+    @FXML
+    private void onCategorias() {
+        try {
+            sesion.exigirRol(Rol.ADMIN);
+            navegador.abrir("catalogo/categorias.fxml");
+        } catch (RuntimeException error) {
+            mostrarError("No se pudieron abrir las categorías.", error);
+        }
+    }
+
     //abre el editor para crear un producto nuevo
     @FXML
     private void onNuevo() {

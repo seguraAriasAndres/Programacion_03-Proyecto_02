@@ -10,8 +10,8 @@
     <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
     <top>
         <VBox spacing="12">
-            <Label text="TOMA DE PEDIDO" style="-fx-font-size: 24px; -fx-font-weight: bold;"/>
-            <HBox spacing="10" alignment="CENTER_LEFT">
+            <Label text="Toma de pedido" styleClass="page-title"/>
+            <HBox spacing="10" alignment="CENTER_LEFT" styleClass="toolbar">
                 <Label text="Pedido:"/><Label fx:id="lblPedido" text="Nuevo"/>
                 <Label text="Cliente:"/>
                 <TextField fx:id="txtCliente" promptText="Nombre del cliente" HBox.hgrow="ALWAYS"/>
@@ -25,7 +25,7 @@
             <BorderPane.margin><Insets top="16" bottom="16"/></BorderPane.margin>
             <items>
                 <VBox spacing="10">
-                    <HBox spacing="10" alignment="CENTER_LEFT">
+                    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="toolbar">
                         <Label text="Categoría:"/>
                         <ComboBox fx:id="cmbCategoria" promptText="Todas las categorías" prefWidth="250"/>
                         <Button fx:id="btnActualizarCatalogo" text="Actualizar catálogo" onAction="#onActualizarCatalogo"/>
@@ -53,7 +53,7 @@
                     </HBox>
                 </VBox>
                 <VBox spacing="10">
-                    <Label text="Productos del pedido" style="-fx-font-weight: bold;"/>
+                    <Label text="Productos del pedido" styleClass="section-title"/>
                     <TableView fx:id="tblLineas" editable="false" VBox.vgrow="ALWAYS">
                         <columns>
                             <TableColumn fx:id="colLineaProducto" text="Producto" prefWidth="300"/>
@@ -66,8 +66,8 @@
                     </TableView>
                     <HBox spacing="10" alignment="CENTER_RIGHT">
                         <Button fx:id="btnQuitar" text="Quitar línea seleccionada" onAction="#onQuitarLinea"/>
-                        <Label text="Total:" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
-                        <Label fx:id="lblTotal" text="0.00" style="-fx-font-size: 18px;"/>
+                        <Label text="Total:" styleClass="section-title"/>
+                        <Label fx:id="lblTotal" text="0.00" styleClass="section-title"/>
                     </HBox>
                 </VBox>
             </items>
@@ -75,11 +75,11 @@
     </center>
     <bottom>
         <VBox spacing="12">
-            <Label fx:id="lblEstado" wrapText="true"/>
+            <Label fx:id="lblEstado" wrapText="true" styleClass="status-message"/>
             <HBox spacing="10" alignment="CENTER_RIGHT">
                 <Button fx:id="btnVolver" text="Volver a pedidos" onAction="#onVolver"/>
-                <Button fx:id="btnConfirmar" text="Confirmar pedido" onAction="#onConfirmar"/>
-                <Button fx:id="btnCobrar" text="Ir a cobro" onAction="#onCobrar"/>
+                <Button fx:id="btnConfirmar" text="Confirmar pedido" onAction="#onConfirmar" styleClass="button-primary"/>
+                <Button fx:id="btnCobrar" text="Ir a cobro" onAction="#onCobrar" styleClass="button-accent"/>
             </HBox>
         </VBox>
     </bottom>

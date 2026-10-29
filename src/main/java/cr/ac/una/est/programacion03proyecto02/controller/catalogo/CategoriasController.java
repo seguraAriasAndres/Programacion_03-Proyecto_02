@@ -97,6 +97,12 @@ public class CategoriasController {
         }
     }
 
+    //regresa al menú
+    @FXML
+    private void onVolver() {
+        navegador.mostrarMenu();
+    }
+
     //copia los valores de una categoría seleccionada al formulario
     private void mostrarEnFormulario(Categoria categoria) {
         seleccionada = categoria;

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox alignment="CENTER" spacing="18.0" styleClass="page-container"
+      xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="cr.ac.una.est.programacion03proyecto02.controller.seguridad.inicioController"
+      prefWidth="760.0" prefHeight="520.0">
+    <padding>
+        <Insets top="40.0" right="40.0" bottom="40.0" left="40.0"/>
+    </padding>
+
+    <Label text="Sistema de restaurante" styleClass="page-title"/>
+    <Label text="Seleccione cómo desea acceder" styleClass="page-subtitle"/>
+
+    <HBox alignment="CENTER" spacing="12.0" styleClass="card">
+        <Button text="Acceso de administrador" onAction="#onLoginAdmin" styleClass="button-primary" prefWidth="220.0"/>
+        <Button text="Acceso de inventario" onAction="#onLoginStockManager" styleClass="button-accent" prefWidth="220.0"/>
+    </HBox>
+
+    <Separator/>
+
+    <Label text="Cajero" styleClass="section-title"/>
+    <HBox alignment="CENTER" spacing="12.0">
+        <TextField fx:id="txtNombreCajero" promptText="Nombre del cajero" prefWidth="260.0"/>
+        <Button text="Iniciar como cajero" onAction="#onIniciarCajero"/>
+    </HBox>
+
+    <Label fx:id="lblMensaje" styleClass="status-message" maxWidth="Infinity" wrapText="true"/>
+
+    <Button text="Salir" onAction="#onSalir" styleClass="button-secondary"/>
+</VBox>

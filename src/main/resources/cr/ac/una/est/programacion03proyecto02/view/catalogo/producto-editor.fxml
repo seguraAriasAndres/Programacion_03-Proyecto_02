@@ -26,10 +26,9 @@
                 <Insets top="18.0" right="20.0" bottom="12.0" left="20.0"/>
             </padding>
 
-            <Label text="Editor de producto"
-                   style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+            <Label text="Editor de producto" styleClass="page-title"/>
 
-            <GridPane hgap="10.0" vgap="10.0">
+            <GridPane hgap="10.0" vgap="10.0" styleClass="toolbar">
                 <Label text="Nombre:"
                        GridPane.columnIndex="0"
                        GridPane.rowIndex="0"/>
@@ -75,10 +74,9 @@
                         <Insets top="8.0" right="20.0" bottom="12.0" left="20.0"/>
                     </padding>
 
-                    <Label text="Opciones del producto"
-                           style="-fx-font-size: 15px; -fx-font-weight: bold;"/>
+                    <Label text="Opciones del producto" styleClass="section-title"/>
 
-                    <HBox spacing="8.0">
+                    <HBox spacing="8.0" styleClass="toolbar">
                         <TextField fx:id="txtNombreOpcion"
                                    promptText="Nombre de la opción"/>
                         <ComboBox fx:id="cmbTipoOpcion"
@@ -116,10 +114,9 @@
                         </columnResizePolicy>
                     </TableView>
 
-                    <Label text="Receta base"
-                           style="-fx-font-size: 15px; -fx-font-weight: bold;"/>
+                    <Label text="Receta base" styleClass="section-title"/>
 
-                    <HBox spacing="8.0">
+                    <HBox spacing="8.0" styleClass="toolbar">
                         <ComboBox fx:id="cmbIngrediente"
                                   promptText="Ingrediente"/>
                         <TextField fx:id="txtCantidadReceta"
@@ -146,8 +143,7 @@
                         </columnResizePolicy>
                     </TableView>
 
-                    <Label text="Receta de la opción seleccionada"
-                           style="-fx-font-size: 15px; -fx-font-weight: bold;"/>
+                    <Label text="Receta de la opción seleccionada" styleClass="section-title"/>
 
                     <HBox spacing="8.0">
                         <Button fx:id="btnAgregarRecetaOpcion"
@@ -182,12 +178,13 @@
                 <Insets top="8.0" right="20.0" bottom="15.0" left="20.0"/>
             </padding>
 
-            <Label fx:id="lblMensaje"/>
+            <Label fx:id="lblMensaje" styleClass="status-message" wrapText="true"/>
 
             <HBox spacing="10.0">
                 <Button fx:id="btnGuardar"
                         text="Guardar producto"
-                        onAction="#onGuardar"/>
+                        onAction="#onGuardar"
+                        styleClass="button-primary"/>
                 <Button fx:id="btnVolver"
                         text="Volver"
                         onAction="#onVolver"/>

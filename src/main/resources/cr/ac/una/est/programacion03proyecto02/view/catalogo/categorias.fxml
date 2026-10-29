@@ -23,10 +23,9 @@
                 <Insets top="20.0" right="20.0" bottom="12.0" left="20.0"/>
             </padding>
 
-            <Label text="Administración de categorías"
-                   style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+            <Label text="Administración de categorías" styleClass="page-title"/>
 
-            <HBox spacing="10.0">
+            <HBox spacing="10.0" styleClass="toolbar">
                 <TextField fx:id="txtNombre"
                            promptText="Nombre de la categoría"
                            HBox.hgrow="ALWAYS"/>
@@ -41,10 +40,15 @@
                         onAction="#onActualizar"/>
                 <Button fx:id="btnNueva"
                         text="Nueva"
-                        onAction="#onNueva"/>
+                        onAction="#onNueva"
+                        styleClass="button-accent"/>
                 <Button fx:id="btnGuardar"
                         text="Guardar"
-                        onAction="#onGuardar"/>
+                        onAction="#onGuardar"
+                        styleClass="button-primary"/>
+                <Button text="Volver al menú"
+                        onAction="#onVolver"
+                        HBox.hgrow="ALWAYS"/>
             </HBox>
         </VBox>
     </top>
@@ -74,7 +78,7 @@
     </center>
 
     <bottom>
-        <Label fx:id="lblMensaje">
+        <Label fx:id="lblMensaje" styleClass="status-message">
             <BorderPane.margin>
                 <Insets top="10.0" right="20.0" bottom="15.0" left="20.0"/>
             </BorderPane.margin>

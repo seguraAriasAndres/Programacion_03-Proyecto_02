@@ -10,18 +10,18 @@
     <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
     <top>
         <VBox spacing="12">
-            <Label text="PEDIDOS ACTIVOS" style="-fx-font-size: 24px; -fx-font-weight: bold;"/>
-            <FlowPane hgap="8" vgap="8">
+            <Label text="Pedidos activos" styleClass="page-title"/>
+            <FlowPane hgap="8" vgap="8" styleClass="toolbar">
                 <Button fx:id="btnActualizar" text="Actualizar" onAction="#onActualizar"/>
-                <Button fx:id="btnNuevo" text="Nuevo pedido" onAction="#onNuevo"/>
+                <Button fx:id="btnNuevo" text="Nuevo pedido" onAction="#onNuevo" styleClass="button-accent"/>
                 <Button fx:id="btnAbrir" text="Abrir pedido" onAction="#onAbrir"/>
-                <Button fx:id="btnCancelar" text="Cancelar pedido" onAction="#onCancelar"/>
+                <Button fx:id="btnCancelar" text="Cancelar pedido" onAction="#onCancelar" styleClass="button-danger"/>
                 <Button fx:id="btnPreparar" text="Iniciar preparación" onAction="#onPreparar"/>
                 <Button fx:id="btnEntregar" text="Entregar" onAction="#onEntregar"/>
-                <Button fx:id="btnCobrar" text="Cobrar" onAction="#onCobrar"/>
+                <Button fx:id="btnCobrar" text="Cobrar" onAction="#onCobrar" styleClass="button-primary"/>
                 <Button fx:id="btnVerRecibo" text="Ver recibo" onAction="#onVerRecibo"/>
             </FlowPane>
-            <Label text="Seleccione un pedido. Los botones disponibles dependen de su preparación y pago." wrapText="true"/>
+            <Label text="Seleccione un pedido. Los botones disponibles dependen de su preparación y pago." wrapText="true" styleClass="muted-text"/>
         </VBox>
     </top>
     <center>
@@ -40,7 +40,7 @@
     </center>
     <bottom>
         <VBox spacing="12">
-            <Label fx:id="lblEstado" text="Cargando pedidos..." wrapText="true"/>
+            <Label fx:id="lblEstado" text="Cargando pedidos..." wrapText="true" styleClass="status-message"/>
             <Button fx:id="btnVolver" text="Volver al menú" onAction="#onVolver"/>
         </VBox>
     </bottom>

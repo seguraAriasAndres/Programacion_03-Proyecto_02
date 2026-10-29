@@ -22,10 +22,9 @@
                 <Insets top="20.0" right="20.0" bottom="12.0" left="20.0"/>
             </padding>
 
-            <Label text="Productos"
-                   style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+            <Label text="Productos" styleClass="page-title"/>
 
-            <HBox spacing="10.0">
+            <HBox spacing="10.0" styleClass="toolbar">
                 <Label text="Categoría:"/>
 
                 <ComboBox fx:id="cmbCategoria"
@@ -38,7 +37,8 @@
 
                 <Button fx:id="btnNuevo"
                         text="Nuevo"
-                        onAction="#onNuevo"/>
+                        onAction="#onNuevo"
+                        styleClass="button-accent"/>
 
                 <Button fx:id="btnEditar"
                         text="Editar"
@@ -46,7 +46,12 @@
 
                 <Button fx:id="btnDesactivar"
                         text="Desactivar"
-                        onAction="#onDesactivar"/>
+                        onAction="#onDesactivar"
+                        styleClass="button-danger"/>
+
+                <Button text="Categorías"
+                        onAction="#onCategorias"
+                        HBox.hgrow="ALWAYS"/>
             </HBox>
         </VBox>
     </top>
@@ -86,7 +91,7 @@
     </center>
 
     <bottom>
-        <Label fx:id="lblMensaje">
+        <Label fx:id="lblMensaje" styleClass="status-message">
             <BorderPane.margin>
                 <Insets top="10.0" right="20.0" bottom="15.0" left="20.0"/>
             </BorderPane.margin>
