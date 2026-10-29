@@ -1,3 +1,17 @@
+/* ==========================================================================
+   Hoja de estilos neutra de la aplicación (tema base).
+
+   Cómo personalizar para un restaurante específico SIN tocar FXML ni Java:
+   1. Copie este archivo, por ejemplo a "app-restaurante-x.css", en esta misma
+      carpeta (cr/ac/una/est/programacion03proyecto02/view/).
+   2. Cambie SOLO las variables del bloque .root de abajo (colores, acento,
+      fondos y textos). El resto de la hoja las reutiliza.
+   3. En HelloApplication, antes de mostrar la primera pantalla, indique el
+      tema: navegador.usarHojaEstilos("app-restaurante-x.css").
+
+   Los FXML no referencian esta hoja: el navegador la adjunta a cada escena.
+   ========================================================================== */
+
 .root{
     -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     -fx-font-size: 13px;
