@@ -38,6 +38,9 @@ public class loginController{
     // Muestra el rol solicitado al llegar desde la pantalla inicial.
     @FXML
     private void initialize(){
+        lblMensaje.visibleProperty().bind(lblMensaje.textProperty().isNotEmpty());
+        lblMensaje.managedProperty().bind(lblMensaje.visibleProperty());
+
         Rol rol = navegador.getRolLoginSeleccionado();
         if (rol == null) {
             lblRol.setText("Seleccione el tipo de acceso desde el inicio.");

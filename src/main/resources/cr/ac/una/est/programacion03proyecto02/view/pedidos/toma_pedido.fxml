@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import cr.ac.una.est.programacion03proyecto02.view.iconos.Icono?>
+
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
 <BorderPane fx:id="raiz" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="cr.ac.una.est.programacion03proyecto02.controller.pedidos.TomaPedidosController"
-            prefWidth="1150" prefHeight="800">
+            prefWidth="1150" prefHeight="720" styleClass="page-container">
     <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
     <top>
         <VBox spacing="12">
@@ -15,22 +17,22 @@
                 <Label text="Pedido:"/><Label fx:id="lblPedido" text="Nuevo"/>
                 <Label text="Cliente:"/>
                 <TextField fx:id="txtCliente" promptText="Nombre del cliente" HBox.hgrow="ALWAYS"/>
-                <Button fx:id="btnCrear" text="Crear borrador" onAction="#onCrear"/>
+                <Button fx:id="btnCrear" text="Crear borrador" onAction="#onCrear" graphicTextGap="8.0"><graphic><Icono tipo="NUEVO"/></graphic></Button>
                 <Button fx:id="btnActualizar" text="Actualizar pedido" onAction="#onActualizar"/>
             </HBox>
         </VBox>
     </top>
     <center>
-        <SplitPane orientation="VERTICAL" dividerPositions="0.53">
+        <SplitPane orientation="VERTICAL" dividerPositions="0.56">
             <BorderPane.margin><Insets top="16" bottom="16"/></BorderPane.margin>
             <items>
-                <VBox spacing="10">
+                <VBox spacing="10" styleClass="card">
                     <HBox spacing="10" alignment="CENTER_LEFT" styleClass="toolbar">
                         <Label text="Categoría:"/>
                         <ComboBox fx:id="cmbCategoria" promptText="Todas las categorías" prefWidth="250"/>
                         <Button fx:id="btnActualizarCatalogo" text="Actualizar catálogo" onAction="#onActualizarCatalogo"/>
                     </HBox>
-                    <SplitPane dividerPositions="0.62" VBox.vgrow="ALWAYS">
+                    <SplitPane dividerPositions="0.66" VBox.vgrow="ALWAYS">
                         <items>
                             <TableView fx:id="tblProductos" editable="false">
                                 <columns>
@@ -40,8 +42,9 @@
                                 </columns>
                                 <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/></columnResizePolicy>
                             </TableView>
-                            <VBox spacing="6">
-                                <Label text="Opciones y extras (Ctrl para elegir varios)" wrapText="true"/>
+                            <VBox spacing="8" styleClass="card">
+                                <Label text="Opciones y extras" styleClass="section-title" wrapText="true"/>
+                                <Label text="Mantenga Ctrl para elegir varias opciones." styleClass="muted-text" wrapText="true"/>
                                 <ListView fx:id="lstOpciones" VBox.vgrow="ALWAYS"/>
                             </VBox>
                         </items>
@@ -52,7 +55,7 @@
                         <Button fx:id="btnAgregar" text="Agregar al pedido" onAction="#onAgregarLinea"/>
                     </HBox>
                 </VBox>
-                <VBox spacing="10">
+                <VBox spacing="10" styleClass="card">
                     <Label text="Productos del pedido" styleClass="section-title"/>
                     <TableView fx:id="tblLineas" editable="false" VBox.vgrow="ALWAYS">
                         <columns>
@@ -64,10 +67,10 @@
                         </columns>
                         <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/></columnResizePolicy>
                     </TableView>
-                    <HBox spacing="10" alignment="CENTER_RIGHT">
+                    <HBox spacing="10" alignment="CENTER_RIGHT" styleClass="card">
                         <Button fx:id="btnQuitar" text="Quitar línea seleccionada" onAction="#onQuitarLinea"/>
                         <Label text="Total:" styleClass="section-title"/>
-                        <Label fx:id="lblTotal" text="0.00" styleClass="section-title"/>
+                        <Label fx:id="lblTotal" text="0.00" styleClass="metric-value"/>
                     </HBox>
                 </VBox>
             </items>
@@ -77,9 +80,9 @@
         <VBox spacing="12">
             <Label fx:id="lblEstado" wrapText="true" styleClass="status-message"/>
             <HBox spacing="10" alignment="CENTER_RIGHT">
-                <Button fx:id="btnVolver" text="Volver a pedidos" onAction="#onVolver"/>
+                <Button fx:id="btnVolver" text="Volver a pedidos" onAction="#onVolver" graphicTextGap="8.0"><graphic><Icono tipo="VOLVER"/></graphic></Button>
                 <Button fx:id="btnConfirmar" text="Confirmar pedido" onAction="#onConfirmar" styleClass="button-primary"/>
-                <Button fx:id="btnCobrar" text="Ir a cobro" onAction="#onCobrar" styleClass="button-accent"/>
+                <Button fx:id="btnCobrar" text="Ir a cobro" onAction="#onCobrar" styleClass="button-accent" graphicTextGap="8.0"><graphic><Icono tipo="COBRAR"/></graphic></Button>
             </HBox>
         </VBox>
     </bottom>

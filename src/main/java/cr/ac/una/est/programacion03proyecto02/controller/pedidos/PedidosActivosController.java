@@ -11,6 +11,7 @@ import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
+import javafx.geometry.Pos;
 import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
@@ -41,9 +42,27 @@ public class PedidosActivosController {
         colPreparacion.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(c.getValue().isConfirmado()
                 ? c.getValue().getEstadoPreparacion().name() : "BORRADOR"));
         colPago.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(c.getValue().getEstadoPago().name()));
+        colPreparacion.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(String estado, boolean vacia) {
+                super.updateItem(estado, vacia);
+                mostrarEstado(this, estado, vacia, switch (estado == null ? "" : estado) {
+                    case "BORRADOR", "CANCELADO" -> "status-neutral";
+                    case "EN_PREPARACION" -> "status-warning";
+                    case "ENTREGADO" -> "status-success";
+                    default -> "status-neutral";
+                });
+            }
+        });
+        colPago.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(String estado, boolean vacia) {
+                super.updateItem(estado, vacia);
+                mostrarEstado(this, estado, vacia, "PAGADO".equals(estado) ? "status-success" : "status-warning");
+            }
+        });
         colTotal.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(c.getValue().calcularTotal().setScale(2, RoundingMode.HALF_UP).toPlainString()));
         tblPedidos.setPlaceholder(new Label("No hay pedidos activos."));
         var seleccion = tblPedidos.getSelectionModel().selectedItemProperty();
+        seleccion.addListener((observable, anterior, actual) -> resaltarSiguienteAccion(actual));
         btnAbrir.disableProperty().bind(seleccion.isNull());
         btnCancelar.disableProperty().bind(Bindings.createBooleanBinding(() -> {
             Pedido p = seleccion.get();
@@ -61,6 +80,45 @@ public class PedidosActivosController {
         btnVerRecibo.disableProperty().bind(Bindings.createBooleanBinding(() -> seleccion.get() == null
                 || seleccion.get().getRecibo() == null, seleccion));
         onActualizar();
+    }
+
+    private void mostrarEstado(TableCell<Pedido, String> celda, String estado, boolean vacia, String clase) {
+        if (vacia || estado == null) {
+            celda.setText(null);
+            celda.setGraphic(null);
+            return;
+        }
+        Label etiqueta = new Label(formatearEstado(estado));
+        etiqueta.getStyleClass().addAll("stock-pill", clase);
+        celda.setText(null);
+        celda.setGraphic(etiqueta);
+        celda.setAlignment(Pos.CENTER_LEFT);
+    }
+
+    private String formatearEstado(String estado) {
+        return switch (estado) {
+            case "BORRADOR" -> "Borrador";
+            case "PENDIENTE" -> "Pendiente";
+            case "EN_PREPARACION" -> "En preparación";
+            case "ENTREGADO" -> "Entregado";
+            case "CANCELADO" -> "Cancelado";
+            case "PAGADO" -> "Pagado";
+            default -> estado;
+        };
+    }
+
+    private void resaltarSiguienteAccion(Pedido pedido) {
+        Button[] acciones = {btnAbrir, btnCancelar, btnPreparar, btnEntregar, btnCobrar, btnVerRecibo};
+        for (Button boton : acciones) boton.getStyleClass().remove("button-primary");
+        if (pedido == null) return;
+
+        Button siguiente = switch (pedido.getEstadoPreparacion()) {
+            case CANCELADO -> pedido.getRecibo() == null ? btnAbrir : btnVerRecibo;
+            case EN_PREPARACION -> btnEntregar;
+            case ENTREGADO -> pedido.getEstadoPago() == EstadoPago.PENDIENTE ? btnCobrar : btnVerRecibo;
+            case PENDIENTE -> pedido.isConfirmado() ? btnPreparar : btnAbrir;
+        };
+        if (!siguiente.isDisabled()) siguiente.getStyleClass().add("button-primary");
     }
 
     @FXML private void onActualizar() {

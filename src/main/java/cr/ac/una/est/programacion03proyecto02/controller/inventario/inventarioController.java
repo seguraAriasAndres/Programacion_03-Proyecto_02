@@ -20,7 +20,10 @@ import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableView;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Pane;
 
@@ -60,6 +63,8 @@ public class inventarioController{
     @FXML private DatePicker dpDesde;
     @FXML private DatePicker dpHasta;
     @FXML private Label lblMensaje;
+    @FXML private TabPane tabAcciones;
+    @FXML private Tab tabEdicion;
 
     // Ingrediente seleccionado en la tabla; null cuando se crea uno nuevo.
     private ingrediente seleccionado;
@@ -73,11 +78,31 @@ public class inventarioController{
     // Comprueba el rol y carga los datos iniciales.
     @FXML
     private void initialize(){
+        lblMensaje.visibleProperty().bind(lblMensaje.textProperty().isNotEmpty());
+        lblMensaje.managedProperty().bind(lblMensaje.visibleProperty());
+
         sesion.exigirAlgunoDe(Rol.ADMIN, Rol.STOCK_MANAGER);
 
         colIngredienteId.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getId()));
         colIngredienteNombre.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getNombre()));
         colIngredienteDisponible.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getCantidadDisponible()));
+        colIngredienteDisponible.setCellFactory(columna -> new TableCell<>() {
+            @Override
+            protected void updateItem(Number cantidad, boolean vacia) {
+                super.updateItem(cantidad, vacia);
+                ingrediente item = getTableRow() == null ? null : getTableRow().getItem();
+                if (vacia || cantidad == null || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                    return;
+                }
+
+                Label indicador = new Label(cantidad.toString());
+                indicador.getStyleClass().addAll("stock-pill", item.estaBajoMinimo() ? "stock-low" : "stock-ok");
+                setText(null);
+                setGraphic(indicador);
+            }
+        });
         colIngredienteMinimo.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getStockMinimo()));
         colIngredienteActiva.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().isActivo()));
 
@@ -117,7 +142,10 @@ public class inventarioController{
             }
         });
 
-        tblIngredientes.getSelectionModel().selectedItemProperty().addListener((obs, antes, actual) -> mostrarEnFormulario(actual));
+        tblIngredientes.getSelectionModel().selectedItemProperty().addListener((obs, antes, actual) -> {
+            mostrarEnFormulario(actual);
+            if (actual != null) tabAcciones.getSelectionModel().select(tabEdicion);
+        });
 
         dpDesde.setValue(LocalDate.now().withDayOfMonth(1));
         dpHasta.setValue(LocalDate.now());
@@ -153,6 +181,7 @@ public class inventarioController{
     private void onNueva(){
         tblIngredientes.getSelectionModel().clearSelection();
         mostrarEnFormulario(null);
+        tabAcciones.getSelectionModel().select(tabEdicion);
         txtNombreIngrediente.requestFocus();
     }
 

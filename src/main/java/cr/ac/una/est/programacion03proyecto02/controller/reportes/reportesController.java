@@ -56,6 +56,9 @@ public class reportesController{
     // Comprueba el rol administrativo y establece el rango inicial.
     @FXML
     private void initialize(){
+        lblMensaje.visibleProperty().bind(lblMensaje.textProperty().isNotEmpty());
+        lblMensaje.managedProperty().bind(lblMensaje.visibleProperty());
+
         sesion.exigirRol(Rol.ADMIN);
 
         colRankingProducto.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getNombreProducto()));

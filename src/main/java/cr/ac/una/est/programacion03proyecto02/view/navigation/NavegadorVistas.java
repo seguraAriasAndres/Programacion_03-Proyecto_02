@@ -49,6 +49,7 @@ public class NavegadorVistas{
     private ReporteService reportes;
     // Hoja de estilos por defecto; un tema de cliente la sustituye sin tocar los FXML.
     private String hojaEstilos = rutaBase + "app.css";
+    private boolean temaCalido;
 
     // Guarda los servicios de pedidos y cobros que compartirán sus controladores.
     public void configurarPedidos(PedidoService pedidos, CobroService cobros){
@@ -85,6 +86,23 @@ public class NavegadorVistas{
         this.hojaEstilos = ruta.replace('\\', '/').startsWith("/")
                 ? ruta.replace('\\', '/')
                 : rutaBase + ruta.replace('\\', '/');
+    }
+
+    // Alterna entre la paleta fría existente y la paleta cálida.
+    public void alternarTema(){
+        exigirVentana();
+        temaCalido = !temaCalido;
+        if (ventana.getScene() != null){
+            String tema = getClass().getResource(rutaBase + "app-calido.css").toExternalForm();
+            ventana.getScene().getStylesheets().remove(tema);
+            if (temaCalido){
+                ventana.getScene().getStylesheets().add(tema);
+            }
+        }
+    }
+
+    public boolean esTemaCalido(){
+        return temaCalido;
     }
 
     // Abre la pantalla inicial pública.
@@ -293,6 +311,12 @@ public class NavegadorVistas{
         }
         if (hoja != null){
             escena.getStylesheets().add(hoja.toExternalForm());
+        }
+        if (temaCalido){
+            URL tema = getClass().getResource(rutaBase + "app-calido.css");
+            if (tema != null){
+                escena.getStylesheets().add(tema.toExternalForm());
+            }
         }
     }
 
