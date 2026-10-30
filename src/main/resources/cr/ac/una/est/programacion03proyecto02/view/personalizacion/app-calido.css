@@ -127,3 +127,12 @@
 .tooltip {
     -fx-background-color: #684a38;
 }
+
+/* Logo de Inicio para el tema cálido. */
+.admin-home-brand {
+    -fx-background-color: transparent;
+    -fx-background-image: url("iconos/logo-calido.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: contain;
+}

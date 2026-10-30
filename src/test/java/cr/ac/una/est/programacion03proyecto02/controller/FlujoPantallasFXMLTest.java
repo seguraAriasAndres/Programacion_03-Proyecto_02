@@ -46,6 +46,8 @@ class FlujoPantallasFXMLTest {
     private final InventarioSimulado inventario = new InventarioSimulado();
     private final AtomicInteger consultasReporte = new AtomicInteger();
     private boolean fallarReporte;
+    private List<Pedido> ventasSimuladas;
+    private LocalDateTime desdeVentas,hastaVentas;
     private boolean fallarAutenticacion;
     private Usuario usuarioAutenticado = usuario(Rol.ADMIN);
     private Recibo recibo;
@@ -77,6 +79,7 @@ class FlujoPantallasFXMLTest {
         pedido.confirmar();
         recibo = new Recibo(88,42,new Pago(MetodoPago.TARJETA,pedido.calcularTotal(),LocalDateTime.now(),"cajero"),pedido.getLineas());
         pedido.registrarCobro(recibo);
+        ventasSimuladas=List.of(pedido);
         PedidoRepository repositorio = new PedidoRepository(conexiones) {
             @Override public synchronized void recargarActivos() { }
         };
@@ -85,8 +88,9 @@ class FlujoPantallasFXMLTest {
             @Override public List<Pedido> listarActivos() { segundoPlano(); return List.of(pedido); }
             @Override public List<Pedido> pedidosPagadosEntre(LocalDateTime desde,LocalDateTime hasta) throws SQLException {
                 segundoPlano(); consultasReporte.incrementAndGet();
+                desdeVentas=desde; hastaVentas=hasta;
                 if(fallarReporte) throw new SQLException("Fallo de consulta simulado");
-                return List.of(pedido);
+                return List.copyOf(ventasSimuladas);
             }
             @Override public Map<Long,Long> rankingProductos(LocalDateTime desde,LocalDateTime hasta) { segundoPlano(); return Map.of(7L,1L); }
         };
@@ -232,12 +236,19 @@ class FlujoPantallasFXMLTest {
             esperar();
             fx(() -> {
                 assertEquals(rol,sesion.getUsuario().getRol());
-                assertEquals(rol==Rol.CAJERO,nodo("btnPedidos").isVisible());
-                assertEquals(rol!=Rol.CAJERO,nodo("btnInventario").isVisible());
-                for(String id : List.of("btnCatalogo","btnReportes","btnUsuarios")) {
-                    assertEquals(rol==Rol.ADMIN,nodo(id).isVisible());
-                    assertEquals(nodo(id).isVisible(),nodo(id).isManaged());
+                if(rol==Rol.ADMIN){
+                    assertNotNull(root().lookup("#barraLateral"));
+                    assertNotNull(root().lookup("#paginaInicio"));
+                    assertEquals(3,root().lookupAll(".home-metric-card").size());
+                    assertTrue(root().lookupAll(".admin-home-card").isEmpty());
+                    for(String id:List.of("btnInventario","btnCatalogo","btnReportes","btnUsuarios"))
+                        assertTrue(nodo(id).isVisible());
+                } else {
+                    assertNull(root().lookup("#barraLateral"),"Los puestos no tienen menú intermedio");
+                    assertNotNull(root().lookup(rol==Rol.CAJERO?"#tblPedidos":"#tblIngredientes"));
+                    assertNull(root().lookup("#btnInicioCatalogo"));
                 }
+                assertNull(root().lookup("#btnPedidos"),"No debe conservarse el antiguo selector de puesto");
                 if(rol!=Rol.ADMIN) {
                     assertThrows(SecurityException.class,navegador::mostrarProductos);
                     assertThrows(SecurityException.class,navegador::mostrarReportes);
@@ -246,7 +257,7 @@ class FlujoPantallasFXMLTest {
                 if(rol==Rol.CAJERO) assertThrows(SecurityException.class,navegador::mostrarInventario);
                 else assertThrows(SecurityException.class,navegador::mostrarPedidosActivos);
                 ventana.getProperties().put("pedidoId",42L);
-                boton("btnCerrarSesion").fire();
+                boton(rol==Rol.CAJERO?"btnVolver":"btnCerrarSesion").fire();
                 assertNull(sesion.getUsuario());
                 assertFalse(ventana.getProperties().containsKey("pedidoId"));
                 assertEquals("",((TextField)nodo("txtNombreUsuario")).getText());
@@ -445,6 +456,180 @@ class FlujoPantallasFXMLTest {
         });
     }
 
+    @Test void adminMantieneBarraYMarcoAlCambiarEntreLosCuatroModulos() throws Exception {
+        Parent[] marco=new Parent[1]; javafx.scene.Node[] barra=new javafx.scene.Node[1];
+        fx(()->{
+            sesion.iniciar(usuario(Rol.ADMIN)); navegador.mostrarInicioSegunRol();
+            marco[0]=root(); barra[0]=nodo("barraLateral");
+            assertEquals(3,root().lookupAll(".home-metric-card").size());
+                    assertTrue(root().lookupAll(".admin-home-card").isEmpty());
+        });
+        for(String[] modulo:List.of(new String[]{"btnInventario","tblIngredientes"},
+                new String[]{"btnCatalogo","tblProductos"},new String[]{"btnReportes","tblHistorial"},
+                new String[]{"btnUsuarios","tblUsuarios"})){
+            fx(()->boton(modulo[0]).fire()); esperar();
+            fx(()->{
+                assertSame(marco[0],root()); assertSame(barra[0],nodo("barraLateral"));
+                assertNotNull(nodo(modulo[1]));
+                assertTrue(boton(modulo[0]).getStyleClass().contains("admin-nav-active"));
+                assertEquals(1,root().lookupAll(".theme-toggle").stream().filter(javafx.scene.Node::isVisible).count());
+                capturar("admin_"+modulo[0]);
+            });
+        }
+        fx(()->{
+            boton("btnInicio").fire(); assertSame(marco[0],root());
+            assertNotNull(nodo("paginaInicio"));
+            root().applyCss();root().layout();
+            double ancho=nodo("contenedorPrincipal").getBoundsInParent().getWidth();
+            boton("btnMenuLateral").fire(); root().applyCss();root().layout();
+            assertFalse(nodo("barraLateral").isVisible()); assertFalse(nodo("barraLateral").isManaged());
+            assertTrue(nodo("contenedorPrincipal").getBoundsInParent().getWidth()>ancho+150);
+            boton("btnCatalogo").fire();
+        }); esperar();
+        fx(()->{
+            assertNotNull(nodo("tblProductos")); assertFalse(nodo("barraLateral").isVisible());
+            capturar("admin_barra_contraida");
+            boton("btnMenuLateral").fire(); assertTrue(nodo("barraLateral").isVisible());
+        });
+    }
+
+    @Test void homeUsaElLogoCorrespondienteACadaTema() throws Exception {
+        fx(()->{
+            javafx.css.CssParser.errorsProperty().clear();
+            sesion.iniciar(usuario(Rol.ADMIN)); navegador.mostrarMenu();
+        }); esperar();
+        fx(()->{
+            for(TemaVisual tema:TemaVisual.values()){
+                while(navegador.getTemaActual()!=tema) boton("btnTema").fire();
+                root().applyCss(); root().layout();
+                var marca=(javafx.scene.layout.Region)nodo("marcaInicio");
+                assertTrue(marca.isVisible()); assertTrue(marca.isManaged());
+                assertEquals(1,marca.getBackground().getImages().size());
+                var imagen=marca.getBackground().getImages().getFirst().getImage();
+                assertFalse(imagen.isError());
+                String recurso=switch(tema){
+                    case FRIO -> "iconos/logo-frio.png";
+                    case CALIDO -> "iconos/logo-calido.png";
+                    case PERSONALIZADO -> "parada-del-puente/iconos/icono-256.png";
+                };
+                assertTrue(imagen.getUrl().endsWith(recurso),imagen.getUrl());
+                assertTrue(javafx.css.CssParser.errorsProperty().isEmpty(),()->javafx.css.CssParser.errorsProperty().toString());
+                capturar("admin_home_"+tema.name().toLowerCase());
+            }
+        });
+    }
+
+    @Test void adminNoPuedeCambiarModuloNiCerrarSesionMientrasHayOperacion() throws Exception {
+        fx(()->{ sesion.iniciar(usuario(Rol.ADMIN)); navegador.mostrarInventario(); }); esperar();
+        fx(()->{
+            var contenido=root().lookup(".admin-module-content"); assertNotNull(contenido);
+            contenido.setDisable(true);
+            boton("btnReportes").fire();
+            assertSame(contenido,root().lookup(".admin-module-content"));
+            assertTrue(((Label)nodo("lblEstadoNavegacion")).getText().contains("Espere"));
+            boton("btnCerrarSesion").fire(); assertNotNull(sesion.getUsuario());
+            var cierre=new javafx.stage.WindowEvent(ventana,javafx.stage.WindowEvent.WINDOW_CLOSE_REQUEST);
+            ventana.fireEvent(cierre); assertTrue(cierre.isConsumed());
+            contenido.setDisable(false); boton("btnReportes").fire();
+        }); esperar(); fx(()->assertNotNull(nodo("tblHistorial")));
+    }
+
+    @Test void puestosVuelvenASuPantallaYNoAbrenElMarcoAdministrativo() throws Exception {
+        for(Rol rol:List.of(Rol.CAJERO,Rol.STOCK_MANAGER)){
+            fx(()->{
+                sesion.iniciar(usuario(rol));
+                assertThrows(SecurityException.class,()->navegador.abrir("seguridad/menu.fxml"));
+                navegador.mostrarMenu();
+            }); esperar();
+            fx(()->{
+                assertNotNull(nodo(rol==Rol.CAJERO?"tblPedidos":"tblIngredientes"));
+                assertNull(root().lookup("#barraLateral"));
+                assertEquals("Cerrar sesión",boton(rol==Rol.CAJERO?"btnVolver":"btnCerrarSesion").getText());
+                navegador.cerrarSesionYMostrarLogin();
+            });
+        }
+    }
+
+    @Test void inicioResumeVentasCobradasDelDiaYExistenciasBajas() throws Exception {
+        Producto producto=new Producto(8,"Sopa",new BigDecimal("7000"),new Categoria(2,"Sopas",true),true);
+        Pedido otro=new Pedido(43,"Luis");
+        otro.agregarLinea(new lineaPedido(52,producto,List.of(),1)); otro.confirmar();
+        otro.registrarCobro(new Recibo(89,43,new Pago(MetodoPago.TARJETA,otro.calcularTotal(),LocalDateTime.now(),"cajero"),otro.getLineas()));
+        ventasSimuladas=List.of(pedido,otro);
+        inventario.alertas=List.of(new ingrediente(2,"Tomate",3,unidadMedida.UNIDAD,10,true));
+        fx(()->{sesion.iniciar(usuario(Rol.ADMIN)); navegador.mostrarMenu();}); esperar();
+        fx(()->{
+            var moneda=java.text.NumberFormat.getCurrencyInstance(Locale.forLanguageTag("es-CR"));
+            assertEquals(moneda.format(new BigDecimal("10500")),((Label)nodo("lblVentasHoy")).getText());
+            assertEquals("2",((Label)nodo("lblPedidosHoy")).getText());
+            assertEquals(moneda.format(new BigDecimal("5250")),((Label)nodo("lblTicketPromedio")).getText());
+            assertEquals(LocalDate.now().atStartOfDay(),desdeVentas);
+            assertEquals(LocalDate.now().plusDays(1).atStartOfDay(),hastaVentas);
+            assertEquals(1,consultasReporte.get(),"Una lectura compartida para las tres métricas");
+            assertTrue(((Label)nodo("lblBienvenida")).getText().contains("prueba"));
+            var alertas=(javafx.scene.layout.VBox)nodo("listaAlertasInicio");
+            assertEquals(1,alertas.getChildren().size());
+            assertTrue(alertas.lookupAll(".label").stream().anyMatch(n->((Label)n).getText().contains("Tomate")));
+            assertTrue(alertas.lookupAll(".label").stream().anyMatch(n->((Label)n).getText().contains("mínimo: 10 unidades")));
+            assertNull(root().lookup("#btnInicioInventario"));
+            root().applyCss(); root().layout(); capturar("home_resumen_alertas");
+        });
+    }
+
+    @Test void inicioSinVentasPresentaCerosYElInventarioAlDia() throws Exception {
+        ventasSimuladas=List.of();
+        fx(()->{sesion.iniciar(usuario(Rol.ADMIN)); navegador.mostrarMenu();}); esperar();
+        fx(()->{
+            var cero=java.text.NumberFormat.getCurrencyInstance(Locale.forLanguageTag("es-CR")).format(BigDecimal.ZERO);
+            assertEquals(cero,((Label)nodo("lblVentasHoy")).getText());
+            assertEquals("0",((Label)nodo("lblPedidosHoy")).getText());
+            assertEquals(cero,((Label)nodo("lblTicketPromedio")).getText());
+            assertEquals("El inventario está al día.",((Label)nodo("lblEstadoInventario")).getText());
+            assertTrue(((javafx.scene.layout.VBox)nodo("listaAlertasInicio")).getChildren().isEmpty());
+            capturar("home_sin_ventas");
+        });
+    }
+
+    @Test void inicioConservaSeccionDisponibleCuandoOtraFallaYPermiteReintentar() throws Exception {
+        fallarReporte=true;
+        fx(()->{sesion.iniciar(usuario(Rol.ADMIN)); navegador.mostrarMenu();}); esperar();
+        fx(()->{
+            assertEquals("—",((Label)nodo("lblVentasHoy")).getText());
+            assertTrue(((Label)nodo("lblEstadoVentas")).getText().contains("No se pudieron"));
+            assertEquals("El inventario está al día.",((Label)nodo("lblEstadoInventario")).getText());
+            assertFalse(boton("btnActualizarInicio").isDisabled());
+            fallarReporte=false; inventario.fallarAlertas=true; boton("btnActualizarInicio").fire();
+            assertFalse(root().isDisabled()); assertFalse(boton("btnInventario").isDisabled());
+        }); esperar();
+        fx(()->{
+            assertEquals("1",((Label)nodo("lblPedidosHoy")).getText());
+            assertFalse(((Label)nodo("lblEstadoVentas")).getStyleClass().contains("status-error"));
+            assertTrue(((Label)nodo("lblEstadoInventario")).getText().contains("No se pudo"));
+            assertFalse(((Label)nodo("lblEstadoInventario")).getText().contains("al día"));
+            boton("btnCatalogo").fire();
+        }); esperar();
+        fx(()->assertNotNull(nodo("tblProductos")));
+    }
+
+    @Test void inicioActualizaAlRegresarYLimitaAlertasAIngredientesActivos() throws Exception {
+        List<ingrediente> alertas=new ArrayList<>();
+        for(int i=1;i<=7;i++) alertas.add(new ingrediente(i,"Ingrediente "+i,0,unidadMedida.GRAMO,10,i!=7));
+        inventario.alertas=alertas;
+        fx(()->{sesion.iniciar(usuario(Rol.ADMIN)); navegador.mostrarMenu();}); esperar();
+        fx(()->{
+            assertEquals(5,((javafx.scene.layout.VBox)nodo("listaAlertasInicio")).getChildren().size());
+            assertTrue(((Label)nodo("lblEstadoInventario")).getText().contains("6 ingrediente"));
+            assertTrue(((Label)nodo("lblEstadoInventario")).getText().contains("primeros 5"));
+            boton("btnCatalogo").fire();
+        }); esperar();
+        fx(()->{ventasSimuladas=List.of(); inventario.alertas=List.of(); boton("btnInicio").fire();}); esperar();
+        fx(()->{
+            assertEquals("0",((Label)nodo("lblPedidosHoy")).getText());
+            assertEquals("El inventario está al día.",((Label)nodo("lblEstadoInventario")).getText());
+            assertEquals(2,consultasReporte.get());
+        });
+    }
+
     private void abrirInventario() throws Exception {
         fx(() -> { sesion.iniciar(usuario(Rol.STOCK_MANAGER)); navegador.mostrarInventario(); }); esperar();
     }
@@ -458,7 +643,9 @@ class FlujoPantallasFXMLTest {
     private void esperar() throws Exception {
         for(int i=0;i<600;i++) {
             boolean[] listo={false};
-            fx(() -> { root().applyCss(); root().layout(); listo[0]=!root().isDisabled(); });
+            fx(() -> { root().applyCss(); root().layout(); listo[0]=!root().isDisabled()
+                    && root().lookupAll(".admin-module-content").stream().noneMatch(javafx.scene.Node::isDisabled)
+                    && (root().lookup("#btnActualizarInicio")==null || !root().lookup("#btnActualizarInicio").isDisabled()); });
             if(listo[0])return;
             Thread.sleep(15);
         }
@@ -478,6 +665,8 @@ class FlujoPantallasFXMLTest {
     }
 
     private static final class InventarioSimulado implements iinventarioService {
+        List<ingrediente> alertas=List.of();
+        boolean fallarAlertas;
         final ingrediente arroz = new ingrediente(1,"Arroz",20000,unidadMedida.GRAMO,5000,true);
         final AtomicInteger consultas=new AtomicInteger(),registrados=new AtomicInteger(),guardados=new AtomicInteger();
         final List<movimientoStock> movimientos=new CopyOnWriteArrayList<>(List.of(
@@ -487,7 +676,11 @@ class FlujoPantallasFXMLTest {
                 new devolucionVenta(4,42,arroz,2,LocalDateTime.now(),"cajero","Cancelación")));
         @Override public List<ingrediente> listarIngredientes() { segundoPlano(); consultas.incrementAndGet(); return List.of(arroz); }
         @Override public List<movimientoStock> listarMovimientos(LocalDateTime desde,LocalDateTime hasta) { segundoPlano(); return List.copyOf(movimientos); }
-        @Override public List<ingrediente> listarBajoMinimo() { segundoPlano(); return List.of(); }
+        @Override public List<ingrediente> listarBajoMinimo() throws SQLException {
+            segundoPlano();
+            if(fallarAlertas) throw new SQLException("Fallo de inventario simulado");
+            return List.copyOf(alertas);
+        }
         @Override public void guardarIngrediente(ingrediente valor) { segundoPlano(); guardados.incrementAndGet(); }
         @Override public void registrarMovimiento(movimientoStock valor) { segundoPlano(); registrados.incrementAndGet(); movimientos.add(valor); }
         @Override public boolean hayStockSuficiente(Map<Long,Double> cantidades) { segundoPlano(); return true; }

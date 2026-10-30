@@ -136,7 +136,7 @@ public class PedidosActivosController {
     @FXML private void onAbrir() { navegar(() -> navegador.abrirPedido(seleccionado().getIdPedido())); }
     @FXML private void onCobrar() { navegar(() -> navegador.abrirCobro(seleccionado().getIdPedido())); }
     @FXML private void onVerRecibo() { navegar(() -> navegador.mostrarRecibo(seleccionado().getRecibo())); }
-    @FXML private void onVolver() { navegar(navegador::mostrarMenu); }
+    @FXML private void onVolver() { navegar(navegador::cerrarSesionYMostrarLogin); }
     @FXML private void onCancelar() { cambiar((id, usuario) -> pedidos.cancelar(id, usuario)); }
     @FXML private void onPreparar() { cambiar((id, usuario) -> pedidos.iniciarPreparacion(id, usuario)); }
     @FXML private void onEntregar() { cambiar((id, usuario) -> pedidos.entregar(id, usuario)); }

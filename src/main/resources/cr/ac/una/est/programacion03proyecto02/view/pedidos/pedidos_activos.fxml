@@ -18,7 +18,7 @@
                 <Label text="Pedidos activos" styleClass="page-title"/>
                 <Region HBox.hgrow="ALWAYS"/>
                 <BotonTema fx:id="btnTema"/>
-                <Button fx:id="btnVolver" text="Volver al menú" onAction="#onVolver" graphicTextGap="8.0"><graphic><Icono tipo="VOLVER"/></graphic></Button>
+                <Button fx:id="btnVolver" text="Cerrar sesión" onAction="#onVolver" styleClass="button-secondary,role-session-action"/>
                 <Button fx:id="btnActualizar" text="Actualizar" onAction="#onActualizar"/>
                 <Button fx:id="btnNuevo" text="Nuevo pedido" onAction="#onNuevo" styleClass="button-accent" graphicTextGap="8.0"><graphic><Icono tipo="NUEVO"/></graphic></Button>
             </HBox>

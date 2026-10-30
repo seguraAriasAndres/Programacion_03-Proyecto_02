@@ -53,6 +53,8 @@ public class NavegadorVistas{
     private ReporteService reportes;
     private UsuariosService usuarios;
     private boolean vistaMostrada;
+    private Parent estructuraAdmin;
+    private menuController controladorAdmin;
     // Hoja de estilos por defecto; un tema de cliente la sustituye sin tocar los FXML.
     private String hojaEstilos = rutaBase + TemaVisual.FRIO.getArchivo();
     private final ReadOnlyObjectWrapper<TemaVisual> tema = new ReadOnlyObjectWrapper<>(TemaVisual.FRIO);
@@ -131,9 +133,20 @@ public class NavegadorVistas{
         abrir("seguridad/login.fxml");
     }
 
-    // Abre el menú de la sesión actual.
+    // El inicio depende del puesto: solo el administrador tiene Home.
+    public void mostrarInicioSegunRol(){
+        exigirVentana();
+        sesion.exigirAlgunoDe(Rol.ADMIN, Rol.STOCK_MANAGER, Rol.CAJERO);
+        switch (sesion.getUsuario().getRol()){
+            case ADMIN -> abrir("seguridad/menu.fxml");
+            case CAJERO -> mostrarPedidosActivos();
+            case STOCK_MANAGER -> mostrarInventario();
+        }
+    }
+
+    // Mantiene compatibles las acciones existentes de volver al inicio.
     public void mostrarMenu(){
-        abrir("seguridad/menu.fxml");
+        mostrarInicioSegunRol();
     }
 
     // Abre la vista de inventario.
@@ -240,7 +253,7 @@ public class NavegadorVistas{
             return;
         }
         if (vista.equals("seguridad/menu.fxml")){
-            sesion.exigirAlgunoDe(Rol.ADMIN, Rol.STOCK_MANAGER, Rol.CAJERO);
+            sesion.exigirRol(Rol.ADMIN);
             return;
         }
         if (vista.equals("seguridad/usuarios.fxml")){
@@ -267,47 +280,87 @@ public class NavegadorVistas{
         throw new IllegalArgumentException("No hay regla de acceso para: " + vista);
     }
 
-    // Carga el FXML y muestra la vista después de validar acceso.
+    private record VistaCargada(Parent raiz, Object controlador) { }
+
+    // Admin conserva el marco lateral; los otros puestos abren su pantalla directamente.
     private void abrirVista(String ruta, Consumer<Object> configurarControlador){
         exigirVentana();
         validarAccesoVista(ruta);
-
         if (operacionEnCurso()){
             throw new IllegalStateException("Espere a que termine la operación actual.");
         }
+        boolean login = ruta.equals(rutaBase + "seguridad/login.fxml");
+        boolean admin = !login && sesion.getUsuario().getRol() == Rol.ADMIN;
+        if (admin){
+            if (estructuraAdmin == null){
+                VistaCargada marco = cargarVista(rutaBase + "seguridad/menu.fxml", null);
+                estructuraAdmin = marco.raiz();
+                controladorAdmin = (menuController) marco.controlador();
+            }
+            if (ruta.equals(rutaBase + "seguridad/menu.fxml")){
+                controladorAdmin.mostrarInicio();
+            } else {
+                Parent modulo = cargarVista(ruta, configurarControlador).raiz();
+                prepararModuloAdmin(modulo);
+                controladorAdmin.mostrarModulo(modulo, ruta.substring(rutaBase.length()));
+            }
+            presentar(estructuraAdmin);
+        } else {
+            VistaCargada vista = cargarVista(ruta, configurarControlador);
+            estructuraAdmin = null;
+            controladorAdmin = null;
+            presentar(vista.raiz());
+        }
+    }
 
+    private VistaCargada cargarVista(String ruta, Consumer<Object> configurarControlador){
         URL recurso = getClass().getResource(ruta);
         if (recurso == null){
             throw new IllegalArgumentException("No se encontró el archivo FXML: " + ruta);
         }
-
-        try{
+        try {
             FXMLLoader loader = new FXMLLoader(recurso);
             loader.setControllerFactory(this::crearControlador);
             Parent raiz = loader.load();
             Object controlador = loader.getController();
-            raiz.lookupAll(".theme-toggle").forEach(nodo -> ((BotonTema) nodo).configurar(this));
-
-            if (configurarControlador != null) {
-                configurarControlador.accept(controlador);
-            }
-
-            // La escena y la ventana permanecen: cambiar de vista no restaura sus dimensiones.
-            Scene escena = ventana.getScene();
-            if (!vistaMostrada || escena == null){
-                var limites = javafx.stage.Screen.getPrimary().getVisualBounds();
-                escena = new Scene(raiz, Math.min(1150, limites.getWidth() - 40),
-                        Math.min(800, limites.getHeight() - 80));
-                ventana.setScene(escena);
-                vistaMostrada = true;
-            } else {
-                escena.setRoot(raiz);
-            }
-            aplicarEstilos(escena);
-            ventana.show();
+            raiz.lookupAll(".theme-toggle").forEach(nodo -> ((BotonTema)nodo).configurar(this));
+            if (configurarControlador != null) configurarControlador.accept(controlador);
+            return new VistaCargada(raiz, controlador);
         } catch (IOException error){
             throw new IllegalStateException("No se pudo cargar la vista " + ruta, error);
         }
+    }
+
+    // El marco ya tiene tema, cierre de sesión e Inicio: se evitan controles repetidos.
+    private void prepararModuloAdmin(Parent modulo){
+        modulo.getStyleClass().add("admin-module-content");
+        modulo.lookupAll(".theme-toggle").forEach(nodo -> {
+            nodo.setVisible(false); nodo.setManaged(false); nodo.setId(null);
+        });
+        modulo.lookupAll(".button").stream()
+                .filter(nodo -> nodo instanceof javafx.scene.control.Button)
+                .map(nodo -> (javafx.scene.control.Button)nodo)
+                .filter(boton -> "Volver al menú".equals(boton.getText())
+                        || boton.getStyleClass().contains("role-session-action"))
+                .forEach(boton -> {
+                    boton.setVisible(false); boton.setManaged(false); boton.setId(null);
+                });
+    }
+
+    // Cambiar de módulo conserva escena, tamaño, tema y estado expandido de la barra.
+    private void presentar(Parent raiz){
+        Scene escena = ventana.getScene();
+        if (!vistaMostrada || escena == null){
+            var limites = javafx.stage.Screen.getPrimary().getVisualBounds();
+            escena = new Scene(raiz, Math.min(1150, limites.getWidth() - 40),
+                    Math.min(800, limites.getHeight() - 80));
+            ventana.setScene(escena);
+            vistaMostrada = true;
+        } else if (escena.getRoot() != raiz){
+            escena.setRoot(raiz);
+        }
+        aplicarEstilos(escena);
+        ventana.show();
     }
 
     // Adjunta la hoja de estilos a la escena; si falta, usa el tema neutro base.
@@ -336,7 +389,7 @@ public class NavegadorVistas{
             return new loginController(autenticacion, sesion, this);
         }
         if (tipo == menuController.class){
-            return new menuController(sesion, this);
+            return new menuController(sesion, this, reportes, inventario);
         }
         if (tipo == inventarioController.class){
             return new inventarioController(inventario, sesion, this);
@@ -394,6 +447,8 @@ public class NavegadorVistas{
 
     // Detecta si la vista actual está bloqueada por una operación.
     private boolean operacionEnCurso(){
-        return ventana != null && ventana.getScene() != null && ventana.getScene().getRoot().isDisabled();
+        return ventana != null && ventana.getScene() != null
+                && (ventana.getScene().getRoot().isDisabled()
+                || (controladorAdmin != null && controladorAdmin.hayOperacionEnCurso()));
     }
 }
