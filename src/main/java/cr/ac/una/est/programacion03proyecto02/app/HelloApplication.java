@@ -74,9 +74,9 @@ public class HelloApplication extends Application{
             navegador.configurarUsuarios(new UsuariosService(usuarios,sesion));
 
             try{
-                navegador.mostrarInicio();
+                navegador.mostrarLogin();
             } catch (RuntimeException error){
-                estado.setText("Los servicios están listos, pero no se pudo abrir la pantalla inicial. " + "Verifique que exista seguridad/inicio.fxml y esté configurada.");
+                estado.setText("Los servicios están listos, pero no se pudo abrir el inicio de sesión. " + "Verifique que exista seguridad/login.fxml y esté configurada.");
             }
         });
 

@@ -72,10 +72,10 @@ public class menuController{
     }
     @FXML private void onUsuarios(){ navegador.mostrarUsuarios(); }
 
-    // Cierra la sesión y vuelve al inicio.
+    // Cierra la sesión y vuelve al acceso único.
     @FXML
     private void onCerrarSesion(){
-        navegador.cerrarSesionYMostrarInicio();
+        navegador.cerrarSesionYMostrarLogin();
     }
 
     // Controla la visibilidad y el espacio ocupado por cada botón.

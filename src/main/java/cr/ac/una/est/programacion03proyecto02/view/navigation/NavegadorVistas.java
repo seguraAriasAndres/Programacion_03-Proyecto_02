@@ -9,7 +9,6 @@ import cr.ac.una.est.programacion03proyecto02.controller.pedidos.PedidosActivosC
 import cr.ac.una.est.programacion03proyecto02.controller.pedidos.ReciboController;
 import cr.ac.una.est.programacion03proyecto02.controller.pedidos.TomaPedidosController;
 import cr.ac.una.est.programacion03proyecto02.controller.reportes.reportesController;
-import cr.ac.una.est.programacion03proyecto02.controller.seguridad.inicioController;
 import cr.ac.una.est.programacion03proyecto02.controller.seguridad.loginController;
 import cr.ac.una.est.programacion03proyecto02.controller.seguridad.menuController;
 import cr.ac.una.est.programacion03proyecto02.controller.seguridad.UsuariosController;
@@ -43,7 +42,6 @@ public class NavegadorVistas{
 
     private static final String rutaBase = "/cr/ac/una/est/programacion03proyecto02/view/";
     private static final String clavePedidoId = "pedidoId";
-    private static final String claveRolLogin = "rolLogin";
 
     private Stage ventana;
     private catalogoService catalogo;
@@ -128,32 +126,9 @@ public class NavegadorVistas{
         return tema.getReadOnlyProperty();
     }
 
-    // Abre la pantalla inicial pública.
-    public void mostrarInicio(){
-        abrir("seguridad/inicio.fxml");
-    }
-
-    // Abre el login administrativo sin rol preseleccionado.
+    // Abre el acceso único; el rol se obtiene de la cuenta al autenticarla.
     public void mostrarLogin(){
-        exigirVentana();
-        ventana.getProperties().remove(claveRolLogin);
         abrir("seguridad/login.fxml");
-    }
-
-    // Abre el login con el rol administrativo elegido.
-    public void mostrarLogin(Rol rolEsperado){
-        Objects.requireNonNull(rolEsperado);
-
-        exigirVentana();
-        ventana.getProperties().put(claveRolLogin, rolEsperado);
-        abrir("seguridad/login.fxml");
-    }
-
-    // Devuelve el rol elegido antes de abrir el login.
-    public Rol getRolLoginSeleccionado(){
-        exigirVentana();
-        Object valor = ventana.getProperties().get(claveRolLogin);
-        return valor instanceof Rol rol ? rol : null;
     }
 
     // Abre el menú de la sesión actual.
@@ -171,8 +146,8 @@ public class NavegadorVistas{
         abrir("reportes/reportes.fxml");
     }
 
-    // Cierra la sesión y vuelve al inicio.
-    public void cerrarSesionYMostrarInicio(){
+    // Cierra la sesión y vuelve al login sin conservar el pedido anterior.
+    public void cerrarSesionYMostrarLogin(){
         exigirVentana();
         if (operacionEnCurso()){
             throw new IllegalStateException("Espere a que termine la operación actual.");
@@ -180,8 +155,7 @@ public class NavegadorVistas{
 
         sesion.cerrar();
         ventana.getProperties().remove(clavePedidoId);
-        ventana.getProperties().remove(claveRolLogin);
-        mostrarInicio();
+        mostrarLogin();
     }
 
     // Resuelve y abre una vista aplicando sus permisos.
@@ -262,8 +236,7 @@ public class NavegadorVistas{
 
         String vista = ruta.substring(rutaBase.length());
 
-        if (vista.equals("seguridad/inicio.fxml")
-                || vista.equals("seguridad/login.fxml")){
+        if (vista.equals("seguridad/login.fxml")){
             return;
         }
         if (vista.equals("seguridad/menu.fxml")){
@@ -359,9 +332,6 @@ public class NavegadorVistas{
     // Construye los controladores con sus dependencias compartidas.
     private Object crearControlador(Class<?> tipo){
         if(tipo==UsuariosController.class) return new UsuariosController(usuarios,this);
-        if (tipo == inicioController.class){
-            return new inicioController(sesion, this);
-        }
         if (tipo == loginController.class){
             return new loginController(autenticacion, sesion, this);
         }

@@ -46,6 +46,7 @@ class FlujoPantallasFXMLTest {
     private final InventarioSimulado inventario = new InventarioSimulado();
     private final AtomicInteger consultasReporte = new AtomicInteger();
     private boolean fallarReporte;
+    private boolean fallarAutenticacion;
     private Usuario usuarioAutenticado = usuario(Rol.ADMIN);
     private Recibo recibo;
     private Pedido pedido;
@@ -96,7 +97,11 @@ class FlujoPantallasFXMLTest {
             navegador = new NavegadorVistas();
             navegador.configurar(ventana,catalogo,inventario,sesion);
             navegador.configurarPedidos(pedidos,new CobroService(repositorio,new ReciboDAO(),conexiones));
-            navegador.configurarPantallas((nombre,clave) -> { segundoPlano(); return usuarioAutenticado; },new ReporteService(pedidos));
+            navegador.configurarPantallas((nombre,clave) -> {
+                segundoPlano();
+                if(fallarAutenticacion) throw new SQLException("Fallo de autenticación simulado");
+                return usuarioAutenticado;
+            },new ReporteService(pedidos));
             navegador.configurarUsuarios(new UsuariosService(new UsuarioDAO(conexiones) {
                 @Override public List<ResumenUsuario> listar() {segundoPlano();return List.copyOf(cuentas);}
                 @Override public long crear(String nombre,String hash,Rol rol,boolean activo) {
@@ -111,14 +116,13 @@ class FlujoPantallasFXMLTest {
 
     @Test void pantallasPermitenCambiarTresDisenosSinPerderLaSeleccion() throws Exception {
         fx(()->javafx.css.CssParser.errorsProperty().clear());
-        for(String vista : List.of("inicio","login","menu","usuarios","inventario","reportes","categorias","productos","editor","pedidos","toma","cobro","recibo")) {
+        for(String vista : List.of("login","menu","usuarios","inventario","reportes","categorias","productos","editor","pedidos","toma","cobro","recibo")) {
             TemaVisual[] anterior = new TemaVisual[1];
             fx(() -> {
                 anterior[0] = navegador.getTemaActual();
                 sesion.iniciar(usuario(Set.of("pedidos","toma","cobro","recibo").contains(vista)?Rol.CAJERO:Rol.ADMIN));
                 switch(vista) {
-                    case "inicio" -> navegador.mostrarInicio();
-                    case "login" -> navegador.mostrarLogin(Rol.ADMIN);
+                    case "login" -> navegador.mostrarLogin();
                     case "menu" -> navegador.mostrarMenu();
                     case "usuarios" -> navegador.mostrarUsuarios();
                     case "inventario" -> navegador.mostrarInventario();
@@ -190,42 +194,92 @@ class FlujoPantallasFXMLTest {
         });
     }
 
-    @Test void loginRechazaRolIncorrectoYLuegoPermiteEntrarConElCorrecto() throws Exception {
-        fx(() -> navegador.mostrarLogin(Rol.ADMIN));
-        usuarioAutenticado = usuario(Rol.STOCK_MANAGER);
-        fx(() -> { texto("txtNombreUsuario","stock"); texto("txtClave","clave"); boton("btnIniciar").fire(); });
-        esperar();
+    @Test void loginValidaCamposYRechazaCredencialesIncorrectas() throws Exception {
         fx(() -> {
-            assertTrue(((Label)nodo("lblMensaje")).getText().contains("rol seleccionado"));
-            assertEquals("",((PasswordField)nodo("txtClave")).getText());
-            assertThrows(IllegalStateException.class,() -> sesion.exigirRol(Rol.ADMIN));
-            boton("btnTema").fire();
-            texto("txtClave","clave");
-            usuarioAutenticado = usuario(Rol.ADMIN);
+            navegador.mostrarLogin();
+            assertFalse(boton("btnIniciar").isDisabled());
+            assertTrue(boton("btnIniciar").isDefaultButton());
+            assertNull(sesion.getUsuario());
+            assertThrows(IllegalStateException.class,navegador::mostrarMenu);
             boton("btnIniciar").fire();
+            assertTrue(((Label)nodo("lblMensaje")).getText().contains("nombre de usuario y la clave"));
+            usuarioAutenticado = null;
+            texto("txtNombreUsuario","stock"); texto("txtClave","incorrecta"); boton("btnIniciar").fire();
         });
         esperar();
-        fx(() -> { assertNotNull(nodo("btnCatalogo")); assertEquals(TemaVisual.CALIDO,navegador.getTemaActual()); });
+        fx(() -> {
+            assertEquals("Nombre o clave incorrectos.",((Label)nodo("lblMensaje")).getText());
+            assertEquals("",((PasswordField)nodo("txtClave")).getText());
+            assertNull(sesion.getUsuario());
+            assertFalse(boton("btnIniciar").isDisabled());
+        });
     }
 
-    @Test void accesoDeCajeroRequiereClaveYRespetaLosPermisosDelMenu() throws Exception {
+    @Test void loginUsaElRolDeLaCuentaYCerrarSesionPermiteCambiarDeUsuario() throws Exception {
         fx(() -> {
-            navegador.mostrarInicio();
-            root().lookupAll(".button").stream().filter(n->n instanceof Button b && b.getText().equals("Acceso de cajero"))
-                    .map(n->(Button)n).findFirst().orElseThrow().fire();
-            assertNull(sesion.getUsuario());
-            assertEquals(Rol.CAJERO,navegador.getRolLoginSeleccionado());
-            usuarioAutenticado=usuario(Rol.CAJERO);
-            texto("txtNombreUsuario","cajero"); texto("txtClave","clave-prueba"); boton("btnIniciar").fire();
+            navegador.mostrarLogin();
+            boton("btnTema").fire();
+            ventana.setWidth(1100); ventana.setHeight(780);
+        });
+        Scene[] escena = new Scene[1];
+        double[] dimensiones = new double[2];
+        fx(() -> { escena[0]=ventana.getScene(); dimensiones[0]=ventana.getWidth(); dimensiones[1]=ventana.getHeight(); });
+        for(Rol rol : Rol.values()) {
+            fx(() -> {
+                usuarioAutenticado = usuario(rol);
+                texto("txtNombreUsuario",rol.name()); texto("txtClave","clave-prueba"); boton("btnIniciar").fire();
+            });
+            esperar();
+            fx(() -> {
+                assertEquals(rol,sesion.getUsuario().getRol());
+                assertEquals(rol==Rol.CAJERO,nodo("btnPedidos").isVisible());
+                assertEquals(rol!=Rol.CAJERO,nodo("btnInventario").isVisible());
+                for(String id : List.of("btnCatalogo","btnReportes","btnUsuarios")) {
+                    assertEquals(rol==Rol.ADMIN,nodo(id).isVisible());
+                    assertEquals(nodo(id).isVisible(),nodo(id).isManaged());
+                }
+                if(rol!=Rol.ADMIN) {
+                    assertThrows(SecurityException.class,navegador::mostrarProductos);
+                    assertThrows(SecurityException.class,navegador::mostrarReportes);
+                    assertThrows(SecurityException.class,navegador::mostrarUsuarios);
+                }
+                if(rol==Rol.CAJERO) assertThrows(SecurityException.class,navegador::mostrarInventario);
+                else assertThrows(SecurityException.class,navegador::mostrarPedidosActivos);
+                ventana.getProperties().put("pedidoId",42L);
+                boton("btnCerrarSesion").fire();
+                assertNull(sesion.getUsuario());
+                assertFalse(ventana.getProperties().containsKey("pedidoId"));
+                assertEquals("",((TextField)nodo("txtNombreUsuario")).getText());
+                assertEquals("",((PasswordField)nodo("txtClave")).getText());
+                assertEquals("",((Label)nodo("lblMensaje")).getText());
+                assertEquals(TemaVisual.CALIDO,navegador.getTemaActual());
+                assertSame(escena[0],ventana.getScene());
+                assertEquals(dimensiones[0],ventana.getWidth(),1);
+                assertEquals(dimensiones[1],ventana.getHeight(),1);
+                assertThrows(IllegalStateException.class,navegador::mostrarMenu);
+            });
+        }
+    }
+
+    @Test void errorDeAutenticacionNoIniciaSesionYPermiteReintentar() throws Exception {
+        fallarAutenticacion = true;
+        fx(() -> {
+            navegador.mostrarLogin();
+            texto("txtNombreUsuario","admin"); texto("txtClave","clave-prueba"); boton("btnIniciar").fire();
         });
         esperar();
         fx(() -> {
-            assertTrue(nodo("btnPedidos").isVisible());
-            assertFalse(nodo("btnInventario").isVisible());
-            assertFalse(nodo("btnCatalogo").isVisible());
-            assertFalse(nodo("btnUsuarios").isVisible());
-            assertThrows(SecurityException.class,navegador::mostrarInventario);
-            assertThrows(SecurityException.class,navegador::mostrarReportes);
+            assertNull(sesion.getUsuario());
+            assertEquals("No se pudo completar el inicio de sesión.",((Label)nodo("lblMensaje")).getText());
+            assertEquals("",((PasswordField)nodo("txtClave")).getText());
+            assertFalse(boton("btnIniciar").isDisabled());
+            fallarAutenticacion = false;
+            texto("txtClave","clave-prueba"); boton("btnIniciar").fire();
+        });
+        esperar();
+        fx(() -> {
+            assertEquals(Rol.ADMIN,sesion.getUsuario().getRol());
+            assertTrue(nodo("btnUsuarios").isVisible());
         });
     }
 
