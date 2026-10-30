@@ -4,7 +4,7 @@ Aplicación de escritorio para operar un restaurante. Está construida con Java 
 
 ## Funciones principales
 
-- **Seguridad:** administración, inventario y caja requieren cuenta y contraseña. El administrador crea usuarios y asigna sus roles desde el menú Usuarios.
+- **Seguridad:** al abrir el sistema aparece el inicio de sesión, sin elegir un rol. El menú muestra los módulos permitidos según el rol guardado de la cuenta; cerrar sesión vuelve al login. Administración, inventario y caja requieren cuenta y contraseña. El administrador crea usuarios y asigna sus roles desde el menú Usuarios.
 - **Catálogo:** categorías, productos, opciones, recetas y consulta de disponibilidad según existencias. En Extras y acompañamientos se crean opciones con ingredientes o vinculadas a la receta vigente de otro producto.
 - **Inventario:** ingredientes, movimientos de entrada y merma, consumo por venta y alertas de stock mínimo.
 - **Pedidos y cobros:** borradores, confirmación con descuento de existencias, preparación, entrega, cancelación con restitución de existencias y recibo de pago.

@@ -20,7 +20,7 @@
             <Region HBox.hgrow="ALWAYS"/>
             <Label fx:id="lblUsuario" styleClass="muted-text"/>
             <BotonTema fx:id="btnTema"/>
-            <Button text="Cerrar sesión" onAction="#onCerrarSesion" styleClass="button-secondary"/>
+            <Button fx:id="btnCerrarSesion" text="Cerrar sesión" onAction="#onCerrarSesion" styleClass="button-secondary"/>
         </HBox>
     </top>
     <center>

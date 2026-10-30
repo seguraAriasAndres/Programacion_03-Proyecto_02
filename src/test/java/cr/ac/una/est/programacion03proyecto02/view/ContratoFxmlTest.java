@@ -38,7 +38,6 @@ class ContratoFxmlTest {
 
     // Las rutas exactas que usa NavegadorVistas para abrir cada pantalla.
     private static final String[] VISTAS = {
-            "seguridad/inicio.fxml",
             "seguridad/login.fxml",
             "seguridad/menu.fxml",
             "seguridad/usuarios.fxml",

@@ -2,9 +2,6 @@
 
 <?import cr.ac.una.est.programacion03proyecto02.view.personalizacion.BotonTema?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Region?>
-
-<?import cr.ac.una.est.programacion03proyecto02.view.iconos.Icono?>
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
@@ -28,13 +25,13 @@
             </padding>
 
             <Label text="Iniciar sesión" styleClass="page-title"/>
-            <Label fx:id="lblRol" styleClass="page-subtitle" wrapText="true"/>
+            <Label text="Ingresa con tu cuenta para acceder a tus módulos." styleClass="page-subtitle" wrapText="true"/>
 
             <TextField fx:id="txtNombreUsuario" promptText="Usuario" maxWidth="Infinity"/>
             <PasswordField fx:id="txtClave" promptText="Clave" maxWidth="Infinity"/>
 
-            <Button fx:id="btnIniciar" text="Ingresar" onAction="#onIniciar" styleClass="button-primary" maxWidth="Infinity"/>
-            <Button text="Volver al inicio" onAction="#onVolver" maxWidth="Infinity" graphicTextGap="8.0"><graphic><Icono tipo="VOLVER"/></graphic></Button>
+            <Button fx:id="btnIniciar" text="Ingresar" onAction="#onIniciar" defaultButton="true" styleClass="button-primary" maxWidth="Infinity"/>
+            <Button text="Salir" onAction="#onSalir" maxWidth="Infinity"/>
 
             <Label fx:id="lblMensaje" styleClass="status-message" maxWidth="Infinity" wrapText="true"/>
         </VBox>
