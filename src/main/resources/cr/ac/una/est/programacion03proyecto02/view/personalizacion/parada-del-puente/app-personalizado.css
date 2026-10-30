@@ -213,3 +213,15 @@
 .date-picker > .arrow-button { -fx-background-color: -fx-leaf-pale; }
 .date-picker .arrow { -fx-background-color: #466338; }
 .metric-value { -fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: -fx-brand-red; }
+
+
+/* Marca únicamente en Home y únicamente en este tema personalizado. */
+.admin-home-brand {
+    -fx-background-image: url("iconos/icono-256.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: contain;
+}
+.admin-home-title { -fx-font-family: "Georgia"; -fx-text-fill: -fx-brand-red; }
+
+.admin-home-card-title { -fx-text-fill: -fx-brand-red; }

@@ -39,7 +39,7 @@ public class loginController{
         lblMensaje.managedProperty().bind(lblMensaje.visibleProperty());
     }
 
-    // Autentica la cuenta y abre el menú con el rol guardado del usuario.
+    // Autentica la cuenta y abre directamente el puesto correspondiente al rol guardado.
     @FXML
     private void onIniciar(){
         String nombre = txtNombreUsuario.getText();
@@ -70,7 +70,7 @@ public class loginController{
 
             try{
                 sesion.iniciar(usuario);
-                navegador.mostrarMenu();
+                navegador.mostrarInicioSegunRol();
             } catch (RuntimeException error){
                 sesion.cerrar();
                 lblMensaje.setText(error.getMessage());

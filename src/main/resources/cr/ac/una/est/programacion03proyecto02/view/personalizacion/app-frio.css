@@ -419,3 +419,55 @@ HBox{
     -fx-text-fill: #ffffff;
     -fx-font-size: 12px;
 }
+
+
+/* Marco administrativo persistente; las pantallas de puesto no usan este menú. */
+.admin-shell { -fx-background-color: -fx-secondary-color; -fx-padding: 0; }
+.admin-header {
+    -fx-padding: 14px 18px; -fx-spacing: 12px;
+    -fx-background-color: -fx-primary-color;
+    -fx-border-color: transparent transparent -fx-border-color-soft transparent;
+}
+.admin-sidebar {
+    -fx-padding: 24px 14px; -fx-spacing: 8px;
+    -fx-background-color: -fx-primary-color;
+    -fx-border-color: transparent -fx-border-color-soft transparent transparent;
+}
+.admin-sidebar-title {
+    -fx-font-size: 11px; -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-color-secondary; -fx-padding: 6px 8px;
+}
+.admin-sidebar .admin-nav-button {
+    -fx-alignment: CENTER_LEFT; -fx-padding: 12px 10px;
+    -fx-background-color: transparent; -fx-border-color: transparent;
+    -fx-text-fill: -fx-text-color-primary;
+}
+.admin-sidebar .admin-nav-button:hover { -fx-background-color: -fx-secondary-color; }
+.admin-sidebar .admin-nav-active, .admin-sidebar .admin-nav-active:hover {
+    -fx-background-color: -fx-accent-color; -fx-text-fill: #ffffff;
+    -fx-border-color: -fx-accent-color;
+}
+.admin-home { -fx-padding: 30px; -fx-spacing: 24px; }
+.admin-home-heading { -fx-padding: 8px 0 16px 0; }
+.admin-home-title { -fx-font-size: 29px; -fx-font-weight: bold; }
+.admin-home-brand {
+    -fx-background-color: transparent;
+    -fx-background-image: url("iconos/logo-frio.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: contain;
+}
+.admin-home-scroll, .admin-home-scroll > .viewport { -fx-background-color: -fx-secondary-color; }
+.admin-module-content { -fx-padding: 18px; }
+
+/* Inicio: métricas y alertas, sin duplicar la navegación lateral. */
+.home-metric-card { -fx-min-height: 145px; -fx-padding: 20px 16px; }
+.home-metric-value { -fx-font-size: 25px; -fx-font-weight: bold; -fx-text-fill: -fx-text-color-primary; }
+.home-stock-card { -fx-padding: 20px; }
+.home-stock-row {
+    -fx-padding: 10px 12px;
+    -fx-background-color: -fx-secondary-color;
+    -fx-background-radius: 6px;
+    -fx-border-color: -fx-border-color-soft;
+    -fx-border-radius: 6px;
+}

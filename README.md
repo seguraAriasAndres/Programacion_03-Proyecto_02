@@ -4,7 +4,7 @@ Aplicación de escritorio para operar un restaurante. Está construida con Java 
 
 ## Funciones principales
 
-- **Seguridad:** al abrir el sistema aparece el inicio de sesión, sin elegir un rol. El menú muestra los módulos permitidos según el rol guardado de la cuenta; cerrar sesión vuelve al login. Administración, inventario y caja requieren cuenta y contraseña. El administrador crea usuarios y asigna sus roles desde el menú Usuarios.
+- **Seguridad:** al abrir el sistema aparece el inicio de sesión, sin elegir un rol. El cajero entra directamente a Pedidos y el encargado de stock a Inventario. El administrador entra a Inicio, con una barra lateral contraíble que permanece en Catálogo, Inventario, Reportes y Usuarios. Cerrar sesión vuelve al login. Administración, inventario y caja requieren cuenta y contraseña. El administrador crea usuarios y asigna sus roles desde el menú Usuarios.
 - **Catálogo:** categorías, productos, opciones, recetas y consulta de disponibilidad según existencias. En Extras y acompañamientos se crean opciones con ingredientes o vinculadas a la receta vigente de otro producto.
 - **Inventario:** ingredientes, movimientos de entrada y merma, consumo por venta y alertas de stock mínimo.
 - **Pedidos y cobros:** borradores, confirmación con descuento de existencias, preparación, entrega, cancelación con restitución de existencias y recibo de pago.
@@ -139,3 +139,19 @@ El icono de ventana se configura aparte: por defecto es neutral. La propiedad de
   ~~~powershell
   .\mvnw.cmd test -Dpruebas.javafx=true -Djava.awt.headless=false
   ~~~
+
+
+### Inicio y navegación por puesto
+
+- **Cajero:** login → Pedidos activos → toma/cobro/recibo. La pantalla principal de su puesto permite cerrar sesión; no aparece un menú intermedio.
+- **Stock manager:** login → Inventario, con cierre de sesión en esa misma pantalla.
+- **Administrador:** login → Home. Dispone de cuatro accesos y una barra lateral persistente con Inicio, Inventario, Catálogo, Reportes y Usuarios. Puede contraerla para ampliar el espacio del módulo sin perder el tema ni cambiar el tamaño de la ventana.
+- Los editores de catálogo conservan la barra y su navegación interna. Los controles duplicados de volver al menú y de tema se ocultan dentro de los módulos administrativos.
+- Una operación en curso bloquea la navegación y el cierre de sesión también cuando la vista está dentro del marco administrativo.
+- El icono de La Parada del Puente se utiliza como fondo CSS de Home solo con el tema personalizado. Los temas frío/cálido no reciben un icono de marca provisional.
+
+### Inicio del administrador
+
+La navegación a Inventario, Catálogo, Reportes y Usuarios se concentra en la barra lateral. Inicio muestra la bienvenida y fecha, ventas cobradas de hoy, cantidad de pedidos cobrados y ticket promedio. Los importes se presentan en colones. El rango abarca desde las 00:00 de hoy hasta las 00:00 de mañana, sin incluir ese límite final, usando la fecha local del equipo, igual que Reportes.
+
+Las alertas muestran hasta cinco ingredientes activos con existencias en el mínimo o por debajo, con cantidad actual, mínimo y unidad. Si no hay alertas, aparece «El inventario está al día». Los datos se consultan al entrar en Inicio o pulsar Actualizar, en segundo plano; cada sección informa sus errores por separado y mantiene disponible la navegación. Una consulta fallida deja los indicadores pendientes, sin presentar ceros como si fueran datos confirmados.

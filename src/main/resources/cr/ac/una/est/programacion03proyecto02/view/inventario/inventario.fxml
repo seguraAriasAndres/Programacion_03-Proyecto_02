@@ -24,12 +24,13 @@
             fx:controller="cr.ac.una.est.programacion03proyecto02.controller.inventario.inventarioController"
             prefWidth="1150.0" prefHeight="720.0" styleClass="page-container">
     <top>
-        <VBox spacing="10.0">            <HBox alignment="CENTER_LEFT" spacing="12">
+        <VBox spacing="10.0">
+            <HBox alignment="CENTER_LEFT" spacing="12">
                 <Label text="Inventario" styleClass="page-title"/>
                 <Region HBox.hgrow="ALWAYS"/>
                 <Button fx:id="btnActualizar" text="Actualizar" onAction="#onActualizar"/>
                 <BotonTema fx:id="btnTema"/>
-                <Button text="Volver al menú" onAction="#onVolver" graphicTextGap="8.0"><graphic><Icono tipo="VOLVER"/></graphic></Button>
+                <Button fx:id="btnCerrarSesion" text="Cerrar sesión" onAction="#onVolver" styleClass="button-secondary,role-session-action"/>
             </HBox>
 
             <TabPane fx:id="tabAcciones" tabClosingPolicy="UNAVAILABLE" prefHeight="104.0">

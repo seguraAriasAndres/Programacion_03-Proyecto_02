@@ -197,7 +197,11 @@ public class inventarioController{
     // Vuelve al menú de acuerdo con la sesión activa.
     @FXML
     private void onVolver(){
-        navegador.mostrarMenu();
+        if (sesion.getUsuario().getRol() == Rol.STOCK_MANAGER){
+            navegador.cerrarSesionYMostrarLogin();
+        } else {
+            navegador.mostrarMenu();
+        }
     }
 
     // Deja el formulario listo para crear un ingrediente nuevo (id 0).
