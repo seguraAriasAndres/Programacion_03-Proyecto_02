@@ -1,6 +1,7 @@
 package cr.ac.una.est.programacion03proyecto02.persistence.dao.seguridad;
 
 import cr.ac.una.est.programacion03proyecto02.logic.model.seguridad.Usuario;
+import cr.ac.una.est.programacion03proyecto02.logic.model.seguridad.ResumenUsuario;
 import cr.ac.una.est.programacion03proyecto02.logic.model.seguridad.enums.Rol;
 import cr.ac.una.est.programacion03proyecto02.persistence.connection.ConexionDB;
 
@@ -35,6 +36,33 @@ public class UsuarioDAO {
 
     public UsuarioDAO(ConexionDB bd) {
         this.bd = Objects.requireNonNull(bd, "Falta el proveedor de conexiones.");
+    }
+
+    /** Lista cuentas sin recuperar los hashes de sus contraseñas. */
+    public java.util.List<ResumenUsuario> listar() throws SQLException {
+        java.util.List<ResumenUsuario> resultado = new java.util.ArrayList<>();
+        try (Connection c = bd.getConnection();
+             PreparedStatement s = c.prepareStatement("SELECT id,nombre_usuario,rol,activo FROM usuario ORDER BY nombre_usuario");
+             ResultSet r = s.executeQuery()) {
+            while (r.next()) resultado.add(new ResumenUsuario(r.getLong("id"),r.getString("nombre_usuario"),
+                    leerRol(r.getString("nombre_usuario"),r.getString("rol")),r.getBoolean("activo")));
+        }
+        return java.util.List.copyOf(resultado);
+    }
+
+    /** Inserta una cuenta con hash generado por el servicio y devuelve su ID automático. */
+    public long crear(String nombre, String hash, Rol rol, boolean activo) throws SQLException {
+        validarNombre(nombre);
+        Objects.requireNonNull(hash); Objects.requireNonNull(rol);
+        try (Connection c = bd.getConnection(); PreparedStatement s = c.prepareStatement(
+                "INSERT INTO usuario(nombre_usuario,hash,rol,activo) VALUES(?,?,?,?)", java.sql.Statement.RETURN_GENERATED_KEYS)) {
+            s.setString(1,nombre); s.setString(2,hash); s.setString(3,rol.name()); s.setBoolean(4,activo);
+            if (s.executeUpdate()!=1) throw new SQLException("No se creó la cuenta.");
+            try (ResultSet r=s.getGeneratedKeys()) {
+                if (!r.next() || r.getLong(1)<=0) throw new SQLException("No se recibió el ID de la cuenta.");
+                return r.getLong(1);
+            }
+        }
     }
 
     /** Devuelve null si el nombre no existe; rechaza filas corruptas o nombres duplicados. */

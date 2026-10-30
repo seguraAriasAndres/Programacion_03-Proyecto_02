@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="JavaFX CSS" pattern="file:src/main/resources/cr/ac/una/est/programacion03proyecto02/view/personalizacion//*" />
+</component>

@@ -77,6 +77,7 @@ class PedidoDAOTest {
                     CREATE TEMPORARY TABLE linea_pedido_opcion (
                         linea_pedido_id BIGINT NOT NULL,
                         opcion_producto_id BIGINT NOT NULL,
+                        cantidad INT NOT NULL DEFAULT 1,
                         PRIMARY KEY (linea_pedido_id, opcion_producto_id)
                     ) ENGINE=InnoDB
                     """);

@@ -71,8 +71,7 @@ public class ReciboController {
 
     @FXML
     private void onCerrar() {
-        // Solicita cambiar de pantalla; mostrarMenu() del navegador sigue pendiente.
-        navegadorVistas.mostrarMenu();
+        navegadorVistas.mostrarPedidosActivos();
     }
 
     private String formatearMonto(BigDecimal monto) {

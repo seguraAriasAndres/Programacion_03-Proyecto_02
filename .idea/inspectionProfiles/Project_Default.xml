@@ -1,0 +1,13 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="CssInvalidPseudoSelector" enabled="true" level="ERROR" enabled_by_default="true">
+      <scope name="JavaFX CSS" level="ERROR" enabled="false" />
+    </inspection_tool>
+    <inspection_tool class="CssUnknownProperty" enabled="true" level="WARNING" enabled_by_default="true">
+      <scope name="JavaFX CSS" level="WARNING" enabled="true">
+        <option name="myIgnoreVendorSpecificProperties" value="true" />
+      </scope>
+    </inspection_tool>
+  </profile>
+</component>

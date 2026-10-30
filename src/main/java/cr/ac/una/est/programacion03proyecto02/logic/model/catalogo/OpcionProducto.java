@@ -19,6 +19,8 @@ public class OpcionProducto {
 
     //elementos asociados a la receta de esta opción
     private List<recetaItem> receta;
+    private long productoOrigenId;
+    private boolean origenDisponible = true;
 
     public OpcionProducto() {
         this.receta = new ArrayList<>();
@@ -80,6 +82,13 @@ public class OpcionProducto {
 
     //si se recibe null, asigna una lista vacía para evitar errores al usarla
     public void setReceta(List<recetaItem> receta) {
-        this.receta = receta != null ? receta : new ArrayList<>();
+        this.receta = receta != null ? new ArrayList<>(receta) : new ArrayList<>();
     }
+    public long getProductoOrigenId() { return productoOrigenId; }
+    public void setProductoOrigenId(long id) {
+        if(id<0) throw new IllegalArgumentException("El ID del producto de origen no puede ser negativo.");
+        productoOrigenId=id;
+    }
+    public boolean isDisponible() { return activa && origenDisponible; }
+    public void setOrigenDisponible(boolean disponible) { origenDisponible=disponible; }
 }

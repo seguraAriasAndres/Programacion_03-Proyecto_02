@@ -3,147 +3,319 @@ package cr.ac.una.est.programacion03proyecto02.view.navigation;
 import cr.ac.una.est.programacion03proyecto02.controller.catalogo.CategoriasController;
 import cr.ac.una.est.programacion03proyecto02.controller.catalogo.ProductoEditorController;
 import cr.ac.una.est.programacion03proyecto02.controller.catalogo.ProductosController;
+import cr.ac.una.est.programacion03proyecto02.controller.inventario.inventarioController;
+import cr.ac.una.est.programacion03proyecto02.controller.pedidos.CobroController;
+import cr.ac.una.est.programacion03proyecto02.controller.pedidos.PedidosActivosController;
 import cr.ac.una.est.programacion03proyecto02.controller.pedidos.ReciboController;
+import cr.ac.una.est.programacion03proyecto02.controller.pedidos.TomaPedidosController;
+import cr.ac.una.est.programacion03proyecto02.controller.reportes.reportesController;
+import cr.ac.una.est.programacion03proyecto02.controller.seguridad.loginController;
+import cr.ac.una.est.programacion03proyecto02.controller.seguridad.menuController;
+import cr.ac.una.est.programacion03proyecto02.controller.seguridad.UsuariosController;
+import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.UsuariosService;
 import cr.ac.una.est.programacion03proyecto02.logic.model.pedidos.Recibo;
+import cr.ac.una.est.programacion03proyecto02.logic.model.seguridad.enums.Rol;
 import cr.ac.una.est.programacion03proyecto02.logic.service.catalogo.catalogoService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.inventario.iinventarioService;
+import cr.ac.una.est.programacion03proyecto02.logic.service.pedidos.CobroService;
+import cr.ac.una.est.programacion03proyecto02.logic.service.pedidos.PedidoService;
+import cr.ac.una.est.programacion03proyecto02.logic.service.reportes.ReporteService;
+import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.IAutenticacionService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.SesionActual;
-import cr.ac.una.est.programacion03proyecto02.persistence.connection.ConexionDB;
+import cr.ac.una.est.programacion03proyecto02.view.personalizacion.BotonTema;
+import cr.ac.una.est.programacion03proyecto02.view.personalizacion.TemaVisual;
+
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 import java.io.IOException;
 import java.net.URL;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-//carga las vistas FXML y cambia la pantalla de la aplicación
-public class NavegadorVistas {
-    private static final String RUTA_BASE = "/cr/ac/una/est/programacion03proyecto02/view/";
+public class NavegadorVistas{
 
-    private static final String CLAVE_PEDIDO_ID = "pedidoId";
+    private static final String rutaBase = "/cr/ac/una/est/programacion03proyecto02/view/";
+    private static final String clavePedidoId = "pedidoId";
 
     private Stage ventana;
     private catalogoService catalogo;
     private iinventarioService inventario;
     private SesionActual sesion;
-    private ConexionDB conexionDB;
+    private PedidoService pedidos;
+    private CobroService cobros;
+    private IAutenticacionService autenticacion;
+    private ReporteService reportes;
+    private UsuariosService usuarios;
+    private boolean vistaMostrada;
+    private Parent estructuraAdmin;
+    private menuController controladorAdmin;
+    // Hoja de estilos por defecto; un tema de cliente la sustituye sin tocar los FXML.
+    private String hojaEstilos = rutaBase + TemaVisual.FRIO.getArchivo();
+    private final ReadOnlyObjectWrapper<TemaVisual> tema = new ReadOnlyObjectWrapper<>(TemaVisual.FRIO);
 
-    //configura la ventana y las dependencias necesarias para crear controladores
-    public void configurar(Stage ventana, catalogoService catalogo, iinventarioService inventario, SesionActual sesion, ConexionDB conexionDB) {
+    // Guarda los servicios de pedidos y cobros que compartirán sus controladores.
+    public void configurarPedidos(PedidoService pedidos, CobroService cobros){
+        this.pedidos = Objects.requireNonNull(pedidos);
+        this.cobros = Objects.requireNonNull(cobros);
+    }
+
+    // Guarda los servicios de login y reportes que usarán sus controladores.
+    public void configurarPantallas(IAutenticacionService autenticacion, ReporteService reportes){
+        this.autenticacion = Objects.requireNonNull(autenticacion);
+        this.reportes = Objects.requireNonNull(reportes);
+    }
+
+    public void configurarUsuarios(UsuariosService usuarios){ this.usuarios=Objects.requireNonNull(usuarios); }
+    public void mostrarUsuarios(){ abrir("seguridad/usuarios.fxml"); }
+
+    // Configura la ventana, los servicios compartidos y la sesión actual.
+    public void configurar(Stage ventana, catalogoService catalogo, iinventarioService inventario, SesionActual sesion){
         this.ventana = Objects.requireNonNull(ventana);
         this.catalogo = Objects.requireNonNull(catalogo);
         this.inventario = Objects.requireNonNull(inventario);
         this.sesion = Objects.requireNonNull(sesion);
-        this.conexionDB = Objects.requireNonNull(conexionDB);
+
+        this.ventana.addEventHandler(WindowEvent.WINDOW_CLOSE_REQUEST, evento -> {
+            if (operacionEnCurso()){
+                evento.consume();
+            }
+        });
     }
 
-    //abre la vista de inicio de sesión
-    public void mostrarLogin() {
+    // Cambia la hoja de estilos de todas las pantallas. Una ruta inexistente
+    // vuelve al app-frio.css neutro; un tema de cliente se copia desde ese archivo.
+    public void usarHojaEstilos(String ruta){
+        if (ruta == null || ruta.isBlank()){
+            throw new IllegalArgumentException("La ruta de la hoja de estilos no puede estar vacía.");
+        }
+        this.hojaEstilos = ruta.replace('\\', '/').startsWith("/")
+                ? ruta.replace('\\', '/')
+                : rutaBase + ruta.replace('\\', '/');
+        if (ventana != null && ventana.getScene() != null){
+            aplicarEstilos(ventana.getScene());
+        }
+    }
+
+    // Recorre frío -> cálido -> personalizado -> frío sin recargar el formulario.
+    public void alternarTema(){
+        exigirVentana();
+        TemaVisual siguiente = tema.get().siguiente();
+        if (getClass().getResource(rutaBase + siguiente.getArchivo()) == null){
+            throw new IllegalStateException("No se encontró la hoja del diseño " + siguiente.getNombre() + ".");
+        }
+        tema.set(siguiente);
+        if (ventana.getScene() != null){
+            aplicarEstilos(ventana.getScene());
+        }
+    }
+
+    public boolean esTemaCalido(){
+        return tema.get() == TemaVisual.CALIDO;
+    }
+
+    public TemaVisual getTemaActual(){
+        return tema.get();
+    }
+
+    // Permite mantener sincronizados los botones sin que modifiquen el estado directamente.
+    public ReadOnlyObjectProperty<TemaVisual> temaProperty(){
+        return tema.getReadOnlyProperty();
+    }
+
+    // Abre el acceso único; el rol se obtiene de la cuenta al autenticarla.
+    public void mostrarLogin(){
         abrir("seguridad/login.fxml");
     }
 
-    //abre el menú principal
-    public void mostrarMenu() {
-        abrir("menu.fxml");
+    // El inicio depende del puesto: solo el administrador tiene Home.
+    public void mostrarInicioSegunRol(){
+        exigirVentana();
+        sesion.exigirAlgunoDe(Rol.ADMIN, Rol.STOCK_MANAGER, Rol.CAJERO);
+        switch (sesion.getUsuario().getRol()){
+            case ADMIN -> abrir("seguridad/menu.fxml");
+            case CAJERO -> mostrarPedidosActivos();
+            case STOCK_MANAGER -> mostrarInventario();
+        }
     }
 
-    //abre una vista relativa a la carpeta view
-    public void abrir(String vista) {
+    // Mantiene compatibles las acciones existentes de volver al inicio.
+    public void mostrarMenu(){
+        mostrarInicioSegunRol();
+    }
+
+    // Abre la vista de inventario.
+    public void mostrarInventario(){
+        abrir("inventario/inventario.fxml");
+    }
+
+    // Abre los reportes financieros.
+    public void mostrarReportes(){
+        abrir("reportes/reportes.fxml");
+    }
+
+    // Cierra la sesión y vuelve al login sin conservar el pedido anterior.
+    public void cerrarSesionYMostrarLogin(){
+        exigirVentana();
+        if (operacionEnCurso()){
+            throw new IllegalStateException("Espere a que termine la operación actual.");
+        }
+
+        sesion.cerrar();
+        ventana.getProperties().remove(clavePedidoId);
+        mostrarLogin();
+    }
+
+    // Resuelve y abre una vista aplicando sus permisos.
+    public void abrir(String vista){
         abrirVista(resolverRuta(vista), null);
     }
 
-    //abre la lista de productos
-    public void mostrarProductos() {
+    // Abre la lista de productos.
+    public void mostrarProductos(){
         abrir("catalogo/productos.fxml");
     }
 
-    //abre el editor de producto y le entrega el id que debe cargar
-    //un id cero indica que se creará un producto nuevo
-    public void mostrarProductoEditor(long productoId) {
-        abrirVista(
-                resolverRuta("catalogo/producto-editor.fxml"),
-                controlador -> {
-                    if (!(controlador instanceof ProductoEditorController editor)) {
-                        throw new IllegalStateException("El FXML de producto debe usar ProductoEditorController.");
-                    }
-                    editor.mostrarProducto(productoId);
-                }
-        );
+    // Abre el editor de producto y entrega el id que debe cargar.
+    public void mostrarProductoEditor(long productoId){
+        abrirVista(resolverRuta("catalogo/producto-editor.fxml"), controlador -> ((ProductoEditorController) controlador).mostrarProducto(productoId));
     }
 
-    public void abrirProducto(long productoId) {
-        mostrarProductoEditor(productoId);
-    }
-
-    //abre la vista de pedido y guarda el id para el controlador
-    public void abrirPedido(long pedidoId) {
-        guardarPedidoId(pedidoId);
-        abrir("pedidos/pedido.fxml");
-    }
-
-    //abre la vista de cobro y guarda el id para el controlador
-    public void abrirCobro(long pedidoId) {
-        guardarPedidoId(pedidoId);
-        abrir("pedidos/Cobro.fxml");
-    }
-
-    //abre el recibo y entrega el objeto a su controlador
-    public void mostrarRecibo(Recibo recibo) {
-        Objects.requireNonNull(recibo, "El recibo no puede ser null.");
-        abrirVista(
-                resolverRuta("pedidos/recibo.fxml"),
-                controlador -> {
-                    if (!(controlador instanceof ReciboController reciboController)) {
-                        throw new IllegalStateException("El FXML de recibo debe usar ReciboController.");
-                    }
-                    reciboController.mostrarRecibo(recibo);
-                }
-        );
-    }
-
-    //devuelve el id que se guardó antes de abrir una vista de pedido o cobro
-    public long getPedidoIdActual() {
-        if (ventana == null) {
-            throw new IllegalStateException("Primero debe configurarse el navegador.");
+    // Abre un pedido y entrega su id al controlador.
+    public void abrirPedido(long pedidoId){
+        validarPedidos();
+        if (pedidoId < 0){
+            throw new IllegalArgumentException("El id no puede ser negativo.");
         }
-        Object valor = ventana.getProperties().get(CLAVE_PEDIDO_ID);
-        if (!(valor instanceof Long pedidoId)) {
-            throw new IllegalStateException("No hay un id de pedido guardado en la navegación.");
+        if (pedidoId > 0){
+            ventana.getProperties().put(clavePedidoId, pedidoId);
+        } else{
+            ventana.getProperties().remove(clavePedidoId);
         }
-        return pedidoId;
+
+        abrirVista(resolverRuta("pedidos/toma_pedido.fxml"), controlador -> ((TomaPedidosController) controlador).mostrarPedido(pedidoId));
     }
 
-    //guarda el id del pedido en la ventana compartida
-    private void guardarPedidoId(long pedidoId) {
+    // Abre la pantalla de cobro para el pedido indicado.
+    public void abrirCobro(long pedidoId){
+        validarPedidos();
         if (pedidoId <= 0) {
             throw new IllegalArgumentException("El id del pedido debe ser positivo.");
         }
-        if (ventana == null) {
-            throw new IllegalStateException("Primero debe llamarse a configurar(...).");
-        }
-        ventana.getProperties().put(CLAVE_PEDIDO_ID, pedidoId);
+        ventana.getProperties().put(clavePedidoId, pedidoId);
+
+        abrirVista(resolverRuta("pedidos/Cobro.fxml"), controlador -> ((CobroController) controlador).mostrarPedido(pedidoId));
     }
 
-    //resuelve la ruta del recurso FXML dentro de view
-    private String resolverRuta(String vista) {
-        Objects.requireNonNull(vista, "La ruta de la vista no puede ser null.");
-        String ruta = vista.startsWith("/") ? vista.substring(1) : vista;
-        if (!ruta.endsWith(".fxml")) {
+    // Abre la lista de pedidos activos.
+    public void mostrarPedidosActivos(){
+        abrir("pedidos/pedidos_activos.fxml");
+    }
+
+    // Abre el recibo de una venta.
+    public void mostrarRecibo(Recibo recibo){
+        validarPedidos();
+        Objects.requireNonNull(recibo);
+
+        abrirVista(resolverRuta("pedidos/recibo.fxml"), controlador -> ((ReciboController) controlador).mostrarRecibo(recibo));
+    }
+
+    // Resuelve una ruta corta al recurso FXML correspondiente.
+    private String resolverRuta(String vista){
+        Objects.requireNonNull(vista);
+        String ruta = vista.replace('\\', '/');
+        if (ruta.startsWith("/")){
+            ruta = ruta.substring(1);
+        }
+        if (ruta.contains("../") || ruta.equals("..")){
+            throw new IllegalArgumentException("La ruta de la vista no es válida.");
+        }
+        if (!ruta.endsWith(".fxml")){
             ruta += ".fxml";
         }
-        return RUTA_BASE + ruta;
+        return rutaBase + ruta;
     }
 
-    //carga el FXML, crea el controlador con sus dependencias y muestra la vista
-    private void abrirVista(String ruta, Consumer<Object> configurarControlador) {
-        if (ventana == null) {
-            throw new IllegalStateException("Primero debe llamarse a configurar(...) con la ventana principal.");
+    // Valida el rol permitido para cada grupo de vistas.
+    private void validarAccesoVista(String ruta){
+        if (!ruta.startsWith(rutaBase)){
+            throw new IllegalArgumentException("La vista está fuera de la carpeta permitida.");
         }
+
+        String vista = ruta.substring(rutaBase.length());
+
+        if (vista.equals("seguridad/login.fxml")){
+            return;
+        }
+        if (vista.equals("seguridad/menu.fxml")){
+            sesion.exigirRol(Rol.ADMIN);
+            return;
+        }
+        if (vista.equals("seguridad/usuarios.fxml")){
+            sesion.exigirRol(Rol.ADMIN);
+            return;
+        }
+        if (vista.startsWith("pedidos/")){
+            validarPedidos();
+            return;
+        }
+        if (vista.startsWith("catalogo/")){
+            sesion.exigirRol(Rol.ADMIN);
+            return;
+        }
+        if (vista.startsWith("inventario/")){
+            sesion.exigirAlgunoDe(Rol.ADMIN, Rol.STOCK_MANAGER);
+            return;
+        }
+        if (vista.startsWith("reportes/") || vista.startsWith("ventas/") || vista.startsWith("compras/")) {
+            sesion.exigirRol(Rol.ADMIN);
+            return;
+        }
+
+        throw new IllegalArgumentException("No hay regla de acceso para: " + vista);
+    }
+
+    private record VistaCargada(Parent raiz, Object controlador) { }
+
+    // Admin conserva el marco lateral; los otros puestos abren su pantalla directamente.
+    private void abrirVista(String ruta, Consumer<Object> configurarControlador){
+        exigirVentana();
+        validarAccesoVista(ruta);
+        if (operacionEnCurso()){
+            throw new IllegalStateException("Espere a que termine la operación actual.");
+        }
+        boolean login = ruta.equals(rutaBase + "seguridad/login.fxml");
+        boolean admin = !login && sesion.getUsuario().getRol() == Rol.ADMIN;
+        if (admin){
+            if (estructuraAdmin == null){
+                VistaCargada marco = cargarVista(rutaBase + "seguridad/menu.fxml", null);
+                estructuraAdmin = marco.raiz();
+                controladorAdmin = (menuController) marco.controlador();
+            }
+            if (ruta.equals(rutaBase + "seguridad/menu.fxml")){
+                controladorAdmin.mostrarInicio();
+            } else {
+                Parent modulo = cargarVista(ruta, configurarControlador).raiz();
+                prepararModuloAdmin(modulo);
+                controladorAdmin.mostrarModulo(modulo, ruta.substring(rutaBase.length()));
+            }
+            presentar(estructuraAdmin);
+        } else {
+            VistaCargada vista = cargarVista(ruta, configurarControlador);
+            estructuraAdmin = null;
+            controladorAdmin = null;
+            presentar(vista.raiz());
+        }
+    }
+
+    private VistaCargada cargarVista(String ruta, Consumer<Object> configurarControlador){
         URL recurso = getClass().getResource(ruta);
-        if (recurso == null) {
+        if (recurso == null){
             throw new IllegalArgumentException("No se encontró el archivo FXML: " + ruta);
         }
         try {
@@ -151,35 +323,132 @@ public class NavegadorVistas {
             loader.setControllerFactory(this::crearControlador);
             Parent raiz = loader.load();
             Object controlador = loader.getController();
-            if (configurarControlador != null) {
-                configurarControlador.accept(controlador);
-            }
-            ventana.setScene(new Scene(raiz));
-            ventana.show();
-        } catch (IOException error) {
+            raiz.lookupAll(".theme-toggle").forEach(nodo -> ((BotonTema)nodo).configurar(this));
+            if (configurarControlador != null) configurarControlador.accept(controlador);
+            return new VistaCargada(raiz, controlador);
+        } catch (IOException error){
             throw new IllegalStateException("No se pudo cargar la vista " + ruta, error);
         }
     }
 
-    //crea los controladores que necesitan dependencias en su constructor
-    private Object crearControlador(Class<?> tipo) {
-        if (tipo == CategoriasController.class) {
+    // El marco ya tiene tema, cierre de sesión e Inicio: se evitan controles repetidos.
+    private void prepararModuloAdmin(Parent modulo){
+        modulo.getStyleClass().add("admin-module-content");
+        modulo.lookupAll(".theme-toggle").forEach(nodo -> {
+            nodo.setVisible(false); nodo.setManaged(false); nodo.setId(null);
+        });
+        modulo.lookupAll(".button").stream()
+                .filter(nodo -> nodo instanceof javafx.scene.control.Button)
+                .map(nodo -> (javafx.scene.control.Button)nodo)
+                .filter(boton -> "Volver al menú".equals(boton.getText())
+                        || boton.getStyleClass().contains("role-session-action"))
+                .forEach(boton -> {
+                    boton.setVisible(false); boton.setManaged(false); boton.setId(null);
+                });
+    }
+
+    // Cambiar de módulo conserva escena, tamaño, tema y estado expandido de la barra.
+    private void presentar(Parent raiz){
+        Scene escena = ventana.getScene();
+        if (!vistaMostrada || escena == null){
+            var limites = javafx.stage.Screen.getPrimary().getVisualBounds();
+            escena = new Scene(raiz, Math.min(1150, limites.getWidth() - 40),
+                    Math.min(800, limites.getHeight() - 80));
+            ventana.setScene(escena);
+            vistaMostrada = true;
+        } else if (escena.getRoot() != raiz){
+            escena.setRoot(raiz);
+        }
+        aplicarEstilos(escena);
+        ventana.show();
+    }
+
+    // Adjunta la hoja de estilos a la escena; si falta, usa el tema neutro base.
+    private void aplicarEstilos(Scene escena){
+        java.util.Set<String> hojas = new java.util.LinkedHashSet<>();
+        URL hoja = getClass().getResource(hojaEstilos);
+        if (hoja == null){
+            hoja = getClass().getResource(rutaBase + TemaVisual.FRIO.getArchivo());
+        }
+        if (hoja != null){
+            hojas.add(hoja.toExternalForm());
+        }
+        if (tema.get() != TemaVisual.FRIO){
+            URL seleccionada = getClass().getResource(rutaBase + tema.get().getArchivo());
+            if (seleccionada != null){
+                hojas.add(seleccionada.toExternalForm());
+            }
+        }
+        escena.getStylesheets().setAll(hojas);
+    }
+
+    // Construye los controladores con sus dependencias compartidas.
+    private Object crearControlador(Class<?> tipo){
+        if(tipo==UsuariosController.class) return new UsuariosController(usuarios,this);
+        if (tipo == loginController.class){
+            return new loginController(autenticacion, sesion, this);
+        }
+        if (tipo == menuController.class){
+            return new menuController(sesion, this, reportes, inventario);
+        }
+        if (tipo == inventarioController.class){
+            return new inventarioController(inventario, sesion, this);
+        }
+        if (tipo == reportesController.class){
+            return new reportesController(reportes, sesion, this);
+        }
+        if (tipo == PedidosActivosController.class){
+            return new PedidosActivosController(pedidos, sesion, this);
+        }
+        if (tipo == TomaPedidosController.class){
+            return new TomaPedidosController(pedidos, catalogo, sesion, this);
+        }
+        if (tipo == CobroController.class){
+            return new CobroController(pedidos, cobros, sesion, this);
+        }
+        if (tipo == CategoriasController.class){
             return new CategoriasController(catalogo, sesion, this);
         }
-        if (tipo == ProductosController.class) {
+        if (tipo == ProductosController.class){
             return new ProductosController(catalogo, sesion, this);
         }
-        if (tipo == ProductoEditorController.class) {
-            return new ProductoEditorController(catalogo, inventario, sesion, this, conexionDB);
+        if (tipo == ProductoEditorController.class){
+            return new ProductoEditorController(catalogo, inventario, sesion, this);
         }
-        if (tipo == ReciboController.class) {
+        if (tipo == ReciboController.class){
             return new ReciboController(this);
         }
 
-        try {
+        try{
             return tipo.getDeclaredConstructor().newInstance();
-        } catch (ReflectiveOperationException error) {
+        } catch (ReflectiveOperationException error){
             throw new IllegalStateException("No se pudo crear el controlador " + tipo.getName() + ". Agréguelo a crearControlador().", error);
         }
+    }
+
+    // Comprueba que el usuario sea cajero y que los servicios de pedidos estén listos.
+    private void validarPedidos(){
+        exigirVentana();
+        if (pedidos == null || cobros == null){
+            throw new IllegalStateException("Los servicios de pedidos no están configurados.");
+        }
+        sesion.exigirRol(Rol.CAJERO);
+        if (operacionEnCurso()){
+            throw new IllegalStateException("Espere a que termine la operación actual.");
+        }
+    }
+
+    // Comprueba que el navegador ya tenga una ventana configurada.
+    private void exigirVentana(){
+        if (ventana == null) {
+            throw new IllegalStateException("Primero debe configurarse el navegador.");
+        }
+    }
+
+    // Detecta si la vista actual está bloqueada por una operación.
+    private boolean operacionEnCurso(){
+        return ventana != null && ventana.getScene() != null
+                && (ventana.getScene().getRoot().isDisabled()
+                || (controladorAdmin != null && controladorAdmin.hayOperacionEnCurso()));
     }
 }

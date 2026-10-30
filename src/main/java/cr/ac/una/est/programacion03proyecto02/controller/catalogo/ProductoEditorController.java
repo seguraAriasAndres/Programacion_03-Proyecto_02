@@ -10,12 +10,11 @@ import cr.ac.una.est.programacion03proyecto02.logic.model.seguridad.enums.Rol;
 import cr.ac.una.est.programacion03proyecto02.logic.service.catalogo.catalogoService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.inventario.iinventarioService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.SesionActual;
-import cr.ac.una.est.programacion03proyecto02.persistence.connection.ConexionDB;
-import cr.ac.una.est.programacion03proyecto02.persistence.dao.pedidos.ProductoDAO;
 import cr.ac.una.est.programacion03proyecto02.view.navigation.NavegadorVistas;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -25,8 +24,6 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -37,10 +34,11 @@ public class ProductoEditorController {
     private final iinventarioService inventario;
     private final SesionActual sesion;
     private final NavegadorVistas navegador;
-    private final ProductoDAO productoDAO;
-    private final ConexionDB conexionDB;
 
     private Producto producto;
+    private boolean referenciasCargadas;
+    private Long productoPendiente;
+    @FXML private javafx.scene.layout.BorderPane raiz;
 
     @FXML private TextField txtNombre;
     @FXML private TextField txtPrecioBase;
@@ -57,9 +55,17 @@ public class ProductoEditorController {
     @FXML private ComboBox<TipoOpcion> cmbTipoOpcion;
     @FXML private TextField txtPrecioOpcion;
     @FXML private CheckBox chkOpcionActiva;
+    @FXML private CheckBox chkEstadoOpcion;
 
     @FXML private ComboBox<ingrediente> cmbIngrediente;
     @FXML private TextField txtCantidadReceta;
+    @FXML private ComboBox<String> cmbOrigenOpcion;
+    @FXML private ComboBox<Producto> cmbProductoOpcion;
+    @FXML private ComboBox<ingrediente> cmbIngredienteOpcion;
+    @FXML private TextField txtCantidadOpcion;
+    @FXML private Label lblOrigenOpcion;
+    @FXML private Button btnAgregarRecetaOpcion, btnQuitarRecetaOpcion;
+    @FXML private javafx.scene.layout.HBox filaProductoOpcion, filaIngredienteOpcion;
 
     @FXML private TableView<recetaItem> tblRecetaBase;
     @FXML private TableColumn<recetaItem, String> colBaseIngrediente;
@@ -71,18 +77,19 @@ public class ProductoEditorController {
 
     @FXML private Label lblMensaje;
 
-    public ProductoEditorController(catalogoService catalogo, iinventarioService inventario, SesionActual sesion, NavegadorVistas navegador, ConexionDB conexionDB) {
+    public ProductoEditorController(catalogoService catalogo, iinventarioService inventario, SesionActual sesion, NavegadorVistas navegador) {
         this.catalogo = Objects.requireNonNull(catalogo);
         this.inventario = Objects.requireNonNull(inventario);
         this.sesion = Objects.requireNonNull(sesion);
         this.navegador = Objects.requireNonNull(navegador);
-        this.conexionDB = Objects.requireNonNull(conexionDB);
-        this.productoDAO = new ProductoDAO();
     }
 
     //configura las tablas y carga las categorías, ingredientes y tipos
     @FXML
     private void initialize() {
+        lblMensaje.visibleProperty().bind(lblMensaje.textProperty().isNotEmpty());
+        lblMensaje.managedProperty().bind(lblMensaje.visibleProperty());
+
         colOpcionNombre.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getNombre()));
         colOpcionTipo.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getTipo().name()));
         colOpcionPrecio.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(
@@ -102,6 +109,27 @@ public class ProductoEditorController {
         configurarComboIngrediente();
 
         cmbTipoOpcion.getItems().setAll(TipoOpcion.values());
+        cmbTipoOpcion.setValue(TipoOpcion.EXTRA);
+        cmbOrigenOpcion.getItems().setAll("Ingrediente","Producto del catálogo");
+        cmbOrigenOpcion.setValue("Ingrediente");
+        filaProductoOpcion.visibleProperty().bind(cmbOrigenOpcion.valueProperty().isEqualTo("Producto del catálogo"));
+        filaProductoOpcion.managedProperty().bind(filaProductoOpcion.visibleProperty());
+        filaIngredienteOpcion.visibleProperty().bind(filaProductoOpcion.visibleProperty().not());
+        filaIngredienteOpcion.managedProperty().bind(filaIngredienteOpcion.visibleProperty());
+        cmbProductoOpcion.setConverter(new javafx.util.StringConverter<>() {
+            @Override public String toString(Producto p) {return p==null?"":p.getNombre();}
+            @Override public Producto fromString(String texto) {throw new UnsupportedOperationException();}
+        });
+        cmbProductoOpcion.valueProperty().addListener((o,a,p)->{
+            if(p!=null){txtNombreOpcion.setText(p.getNombre());txtPrecioOpcion.setText(p.getPrecioBase().toPlainString());}
+        });
+        cmbIngredienteOpcion.setConverter(new javafx.util.StringConverter<>() {
+            @Override public String toString(ingrediente i) {return i==null?"":i.getNombre()+" ("+i.getUnidadMedida()+")";}
+            @Override public ingrediente fromString(String texto) {throw new UnsupportedOperationException();}
+        });
+        cmbIngredienteOpcion.valueProperty().addListener((o,a,i)->{
+            if(i!=null && txtNombreOpcion.getText().isBlank())txtNombreOpcion.setText(i.getNombre());
+        });
 
         tblOpciones.getSelectionModel()
                 .selectedItemProperty()
@@ -114,15 +142,23 @@ public class ProductoEditorController {
 
     //carga un producto existente. Si el id es cero, prepara uno nuevo
     public void mostrarProducto(long productoId) {
+        if (productoId < 0) throw new IllegalArgumentException("El ID no puede ser negativo.");
+        if (!referenciasCargadas) {
+            productoPendiente = productoId;
+            return;
+        }
         if (productoId <= 0) {
             prepararProductoNuevo();
             return;
         }
-        try (Connection conexion = conexionDB.getConnection()) {
-            producto = catalogo.obtenerProducto(productoId, conexion);
-            mostrarProductoEnFormulario();
-            mostrarMensaje("Producto cargado.");
-        } catch (SQLException | RuntimeException error) {
+        try {
+            sesion.exigirRol(Rol.ADMIN);
+            TareaCatalogo.ejecutar(raiz, () -> catalogo.obtenerProducto(productoId), cargado -> {
+                producto = cargado;
+                mostrarProductoEnFormulario();
+                mostrarMensaje("Producto cargado.");
+            }, error -> mostrarError("No se pudo cargar el producto.", error));
+        } catch (RuntimeException error) {
             mostrarError("No se pudo cargar el producto.", error);
         }
     }
@@ -145,20 +181,30 @@ public class ProductoEditorController {
 
             BigDecimal precio = leerMonto(txtPrecioOpcion.getText(), "precio adicional");
 
-            producto.getOpciones().add(new OpcionProducto(0, nombre.trim(), tipo, precio, chkOpcionActiva.isSelected()));
+            OpcionProducto nueva=new OpcionProducto(0, nombre.trim(), tipo, precio, chkOpcionActiva.isSelected());
+            if("Producto del catálogo".equals(cmbOrigenOpcion.getValue())) {
+                Producto origen=cmbProductoOpcion.getValue();
+                if(origen==null || origen.getReceta().isEmpty())throw new IllegalArgumentException("Seleccione un producto con receta de ingredientes.");
+                nueva.setProductoOrigenId(origen.getId());
+                nueva.setReceta(origen.getReceta());
+            } else {
+                agregarIngrediente(nueva.getReceta(),cmbIngredienteOpcion.getValue(),leerCantidad(txtCantidadOpcion.getText()));
+            }
+            producto.getOpciones().add(nueva);
 
             actualizarTablaOpciones();
             txtNombreOpcion.clear();
             txtPrecioOpcion.clear();
-            cmbTipoOpcion.getSelectionModel().clearSelection();
+            cmbTipoOpcion.setValue(TipoOpcion.EXTRA);
             chkOpcionActiva.setSelected(true);
+            tblOpciones.getSelectionModel().select(nueva);
             mostrarMensaje("Opción agregada.");
         } catch (RuntimeException error) {
             mostrarError("No se pudo agregar la opción.", error);
         }
     }
 
-    //desactiva la opción seleccionada para conservar referencias históricas
+    //Quita la opción del catálogo al guardar; la persistencia conserva sus referencias históricas.
     @FXML
     private void onQuitarOpcion() {
         OpcionProducto opcion = tblOpciones.getSelectionModel().getSelectedItem();
@@ -168,10 +214,18 @@ public class ProductoEditorController {
             return;
         }
 
-        opcion.setActiva(false);
+        producto.getOpciones().remove(opcion);
         actualizarTablaOpciones();
-        tblRecetaOpcion.getItems().clear();
-        mostrarMensaje("Opción desactivada.");
+        mostrarRecetaOpcion(null);
+        mostrarMensaje("Extra eliminado de la lista. Guarde el producto para aplicar el cambio.");
+    }
+
+    // Cambia el estado del extra seleccionado; crear uno nuevo usa su casilla independiente.
+    @FXML private void onCambiarEstadoOpcion() {
+        OpcionProducto opcion=tblOpciones.getSelectionModel().getSelectedItem();
+        if(opcion==null)return;
+        opcion.setActiva(chkEstadoOpcion.isSelected());tblOpciones.refresh();
+        mostrarMensaje("Estado del extra actualizado. Guarde el producto para aplicar el cambio.");
     }
 
     //agrega el ingrediente seleccionado a la receta base
@@ -212,11 +266,11 @@ public class ProductoEditorController {
             if (opcion == null) {
                 throw new IllegalArgumentException("Seleccione primero una opción.");
             }
-
-            agregarIngrediente(opcion.getReceta(), cmbIngrediente.getValue(), leerCantidad(txtCantidadReceta.getText()));
+            if(opcion.getProductoOrigenId()>0)throw new IllegalArgumentException("Esta opción usa la receta del producto original. Modifique ese producto para cambiarla.");
+            agregarIngrediente(opcion.getReceta(), cmbIngredienteOpcion.getValue(), leerCantidad(txtCantidadOpcion.getText()));
 
             tblRecetaOpcion.getItems().setAll(opcion.getReceta());
-            txtCantidadReceta.clear();
+            txtCantidadOpcion.clear();
             mostrarMensaje("Ingrediente agregado a la receta de la opción.");
         } catch (RuntimeException error) {
             mostrarError("No se pudo agregar el ingrediente a la opción.", error);
@@ -233,6 +287,7 @@ public class ProductoEditorController {
             mostrarError("Seleccione una opción y un ingrediente de su receta.", null);
             return;
         }
+        if(opcion.getProductoOrigenId()>0){mostrarMensaje("La receta vinculada se modifica en su producto de origen.");return;}
         opcion.getReceta().remove(item);
         tblRecetaOpcion.getItems().setAll(opcion.getReceta());
     }
@@ -259,10 +314,18 @@ public class ProductoEditorController {
             producto.setCategoria(categoria);
             producto.setActivo(chkActivo.isSelected());
 
-            productoDAO.guardarConRecetas(producto);
-
-            mostrarMensaje("Producto guardado correctamente.");
-            navegador.mostrarProductos();
+            Producto cambios = producto;
+            TareaCatalogo.ejecutar(raiz, () -> {
+                catalogo.guardarProducto(cambios);
+                return null;
+            }, resultado -> {
+                mostrarMensaje("Producto guardado correctamente.");
+                try {
+                    navegador.mostrarProductos();
+                } catch (RuntimeException error) {
+                    mostrarError("El producto fue guardado, pero no se pudo abrir la lista.", error);
+                }
+            }, error -> mostrarError("No se pudo guardar el producto. Consulte su estado antes de reintentar.", error));
         } catch (RuntimeException error) {
             mostrarError("No se pudo guardar el producto.", error);
         }
@@ -276,13 +339,22 @@ public class ProductoEditorController {
 
     //carga categorías e ingredientes desde sus servicios
     private void cargarCategoriasEIngredientes() {
-        try {
-            cmbCategoria.getItems().setAll(catalogo.listarCategoriasAdministracion());
-
-            cmbIngrediente.getItems().setAll(inventario.listarIngredientes());
-        } catch (SQLException | RuntimeException error) {
-            mostrarError("No se pudieron cargar categorías o ingredientes.", error);
-        }
+        record Referencias(List<Categoria> categorias, List<ingrediente> ingredientes, List<Producto> productos) { }
+        TareaCatalogo.ejecutar(raiz, () -> {
+            sesion.exigirRol(Rol.ADMIN);
+            return new Referencias(catalogo.listarCategoriasAdministracion(), inventario.listarIngredientes(),catalogo.listarProductosActivos());
+        }, referencias -> {
+            cmbCategoria.getItems().setAll(referencias.categorias());
+            cmbIngrediente.getItems().setAll(referencias.ingredientes());
+            cmbIngredienteOpcion.getItems().setAll(referencias.ingredientes().stream().filter(ingrediente::isActivo).toList());
+            cmbProductoOpcion.getItems().setAll(referencias.productos());
+            referenciasCargadas = true;
+            if (productoPendiente != null) {
+                long id = productoPendiente;
+                productoPendiente = null;
+                mostrarProducto(id);
+            }
+        }, error -> mostrarError("No se pudieron cargar categorías o ingredientes.", error));
     }
 
     //prepara el formulario para crear un producto nuevo
@@ -297,6 +369,7 @@ public class ProductoEditorController {
         tblOpciones.getItems().clear();
         tblRecetaBase.getItems().clear();
         tblRecetaOpcion.getItems().clear();
+        mostrarRecetaOpcion(null);
     }
 
     //muestra los datos del producto cargado en el formulario y las tablas
@@ -316,13 +389,20 @@ public class ProductoEditorController {
 
     //muestra la receta de la opción seleccionada
     private void mostrarRecetaOpcion(OpcionProducto opcion) {
+        boolean vinculada=opcion!=null && opcion.getProductoOrigenId()>0;
+        chkEstadoOpcion.setDisable(opcion==null);
+        chkEstadoOpcion.setSelected(opcion!=null && opcion.isActiva());
+        btnAgregarRecetaOpcion.setDisable(opcion==null || vinculada);
+        btnQuitarRecetaOpcion.setDisable(opcion==null || vinculada);
+        lblOrigenOpcion.setText(opcion==null?"Seleccione una opción para consultar sus ingredientes."
+                :vinculada?"Receta vinculada al producto #"+opcion.getProductoOrigenId()+"; sus cambios se aplican automáticamente."
+                :opcion.getReceta().isEmpty()?"Este extra no tiene ingredientes: agregue su receta antes de ofrecerlo."
+                :"Receta propia del extra: se descontará del inventario al confirmar el pedido.");
         if (opcion == null) {
             tblRecetaOpcion.getItems().clear();
-            chkOpcionActiva.setSelected(true);
             return;
         }
         tblRecetaOpcion.getItems().setAll(opcion.getReceta());
-        chkOpcionActiva.setSelected(opcion.isActiva());
     }
 
     //agrega o suma la cantidad de un ingrediente en una receta
@@ -336,7 +416,9 @@ public class ProductoEditorController {
         for (int i = 0; i < receta.size(); i++) {
             recetaItem existente = receta.get(i);
             if (existente.getIngredienteId() == ingredienteElegido.getId()) {
-                receta.set(i, new recetaItem(existente.getIngredienteId(), existente.getCantidadRequerida() + cantidad));
+                double total = BigDecimal.valueOf(existente.getCantidadRequerida())
+                        .add(BigDecimal.valueOf(cantidad)).doubleValue();
+                receta.set(i, new recetaItem(existente.getIngredienteId(), total));
                 return;
             }
         }
@@ -351,6 +433,10 @@ public class ProductoEditorController {
 
     //configura la apariencia de los selectores de categoría e ingrediente
     private void configurarComboCategoria() {
+        cmbCategoria.setConverter(new javafx.util.StringConverter<>() {
+            @Override public String toString(Categoria categoria) { return categoria==null?"":categoria.getNombre(); }
+            @Override public Categoria fromString(String texto) { throw new UnsupportedOperationException(); }
+        });
         cmbCategoria.setCellFactory(lista -> new ListCell<>() {
             @Override
             protected void updateItem(Categoria categoria, boolean vacia) {

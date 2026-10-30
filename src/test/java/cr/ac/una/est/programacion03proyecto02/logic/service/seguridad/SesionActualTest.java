@@ -27,6 +27,11 @@ class SesionActualTest {
     void iniciarSinUsuarioEsUnError() {
         assertThrows(NullPointerException.class, () -> sesion.iniciar(null));
     }
+    @Test void cajeroNoPuedeEntrarSoloConUnNombreNiConIdTemporal() {
+        assertThrows(SecurityException.class,()->sesion.iniciarComoCajero("cajero"));
+        assertThrows(SecurityException.class,()->sesion.iniciar(new Usuario(0,"cajero",HASH,Rol.CAJERO,true)));
+        assertNull(sesion.getUsuario());
+    }
 
     @Test
     void exigirRolPermiteElRolPropio() {
