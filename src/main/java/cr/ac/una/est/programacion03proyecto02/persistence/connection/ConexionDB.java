@@ -44,7 +44,7 @@ public class ConexionDB {
         } catch (IOException error) {
             throw new SQLException(
                     "No se pudo leer " + ARCHIVO.toAbsolutePath()
-                            + ". Copia config/database.properties.example a ese archivo"
+                            + ". Copia config/database.local.properties a ese archivo"
                             + " y agrega tus credenciales de Aiven.",
                     error);
         }
