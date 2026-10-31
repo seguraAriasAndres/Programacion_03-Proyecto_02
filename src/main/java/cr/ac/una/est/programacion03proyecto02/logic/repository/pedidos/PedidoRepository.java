@@ -61,9 +61,10 @@ public class PedidoRepository {
     public synchronized void actualizarTrasCommit(Pedido pedido) {
         // Actualiza únicamente la caché con una copia del pedido que el servicio ya confirmó en SQL.
         Pedido copia = copiar(pedido);
-        if (copia.getEstadoPreparacion() == EstadoPreparacion.CANCELADO
-                || copia.getEstadoPreparacion() == EstadoPreparacion.ENTREGADO
-                && copia.getEstadoPago() == EstadoPago.PAGADO) {
+        boolean sinVenta = copia.getEstadoPreparacion() == EstadoPreparacion.CANCELADO
+                || (copia.getEstadoPreparacion() == EstadoPreparacion.ENTREGADO
+                && copia.getEstadoPago() == EstadoPago.PAGADO);
+        if (sinVenta) {
             pedidosActivos.remove(copia.getIdPedido());
         } else {
             pedidosActivos.put(copia.getIdPedido(), copia);

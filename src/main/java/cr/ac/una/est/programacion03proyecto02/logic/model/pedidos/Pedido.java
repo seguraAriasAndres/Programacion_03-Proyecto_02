@@ -154,9 +154,12 @@ public class Pedido {
 
     /** La restitucion de ingredientes corresponde a la transaccion del servicio. */
     public void cancelarPedido() {
-        if (estadoPreparacion != EstadoPreparacion.PENDIENTE
-                || estadoPago != EstadoPago.PENDIENTE) {
-            throw new IllegalStateException("Solo se puede cancelar un pedido pendiente y sin pagar.");
+        if (estadoPago != EstadoPago.PENDIENTE) {
+            throw new IllegalStateException("Solo se puede cancelar un pedido sin pagar.");
+        }
+        if (estadoPreparacion == EstadoPreparacion.ENTREGADO
+                || estadoPreparacion == EstadoPreparacion.CANCELADO) {
+            throw new IllegalStateException("No se puede cancelar un pedido entregado o ya cancelado.");
         }
         estadoPreparacion = EstadoPreparacion.CANCELADO;
     }

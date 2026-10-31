@@ -99,6 +99,55 @@ public class UsuarioDAO {
         }
     }
 
+    /** Actualiza nombre, rol y estado de una cuenta existente. Si se pasa hash, también actualiza la clave. */
+    public void actualizarUsuario(long id, String nombre, Rol rol, boolean activo, String hash) throws SQLException {
+        if (id <= 0) {
+            throw new IllegalArgumentException("El id del usuario debe ser positivo.");
+        }
+        validarNombre(nombre);
+        Objects.requireNonNull(rol);
+        try (Connection c = bd.getConnection();
+             PreparedStatement s = c.prepareStatement(hash != null
+                     ? "UPDATE usuario SET nombre_usuario = ?, rol = ?, activo = ?, hash = ? WHERE id = ?"
+                     : "UPDATE usuario SET nombre_usuario = ?, rol = ?, activo = ? WHERE id = ?")) {
+            s.setString(1, nombre);
+            s.setString(2, rol.name());
+            s.setBoolean(3, activo);
+            if (hash != null) {
+                s.setString(4, hash);
+                s.setLong(5, id);
+            } else {
+                s.setLong(4, id);
+            }
+            int filas = s.executeUpdate();
+            if (filas == 0) {
+                throw new SQLException("No existe el usuario con ID " + id + ".");
+            }
+            if (filas > 1) {
+                throw new SQLException("Se actualizo mas de un usuario con el mismo ID.");
+            }
+        }
+    }
+
+    /** Activa o desactiva una cuenta existente sin tocar sus credenciales. */
+    public void cambiarEstado(long id, boolean activo) throws SQLException {
+        if (id <= 0) {
+            throw new IllegalArgumentException("El id del usuario debe ser positivo.");
+        }
+        try (Connection c = bd.getConnection();
+             PreparedStatement s = c.prepareStatement("UPDATE usuario SET activo = ? WHERE id = ?")) {
+            s.setBoolean(1, activo);
+            s.setLong(2, id);
+            int filas = s.executeUpdate();
+            if (filas == 0) {
+                throw new SQLException("No existe el usuario con ID " + id + ".");
+            }
+            if (filas > 1) {
+                throw new SQLException("Se actualizo mas de un usuario con el mismo ID.");
+            }
+        }
+    }
+
     /** Deja constancia del intento, tambien cuando el usuario no existe. */
     public void registrarIntento(String nombre, boolean exitoso) throws SQLException {
         validarNombre(nombre);

@@ -66,7 +66,9 @@ public class PedidosActivosController {
         btnAbrir.disableProperty().bind(seleccion.isNull());
         btnCancelar.disableProperty().bind(Bindings.createBooleanBinding(() -> {
             Pedido p = seleccion.get();
-            return p == null || p.getEstadoPreparacion() != EstadoPreparacion.PENDIENTE || p.getEstadoPago() != EstadoPago.PENDIENTE;
+            return p == null || p.getEstadoPago() != EstadoPago.PENDIENTE
+                    || p.getEstadoPreparacion() == EstadoPreparacion.ENTREGADO
+                    || p.getEstadoPreparacion() == EstadoPreparacion.CANCELADO;
         }, seleccion));
         btnPreparar.disableProperty().bind(Bindings.createBooleanBinding(() -> {
             Pedido p = seleccion.get();

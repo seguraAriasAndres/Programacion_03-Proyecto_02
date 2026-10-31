@@ -43,6 +43,7 @@ public class TomaPedidosController {
     private PauseTransition temporizadorDisponibilidad;
     private boolean actualizandoControles;
     private final Map<Long,Integer> cantidadesExtras = new LinkedHashMap<>();
+    private final Map<Long, Boolean> disponibilidadTemporal = new HashMap<>();
     private final BooleanProperty stockPendiente=new SimpleBooleanProperty(false);
     private Task<Boolean> consultaStock;
     private long revisionStock;
@@ -72,7 +73,12 @@ public class TomaPedidosController {
         temporizadorDisponibilidad.setOnFinished(evento -> comprobarDisponibilidadSeleccionada());
         colProducto.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(c.getValue().getNombre()));
         colPrecioProducto.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(monto(c.getValue().getPrecioBase())));
-        colDisponible.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(c.getValue().isDisponible() ? "Disponible" : "Sin stock"));
+        colDisponible.setCellValueFactory(c -> {
+            Producto p = c.getValue();
+            Boolean temporal = disponibilidadTemporal.get(p.getId());
+            boolean disp = temporal != null ? temporal : p.isDisponible();
+            return new ReadOnlyObjectWrapper<>(disp ? "Disponible" : "Sin stock");
+        });
         colLineaProducto.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(c.getValue().getNombreProducto()));
         colExtras.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(c.getValue().getDescripcionExtras()));
         colCantidad.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(c.getValue().getCantidad()));
@@ -428,7 +434,7 @@ public class TomaPedidosController {
                     stockPendiente.set(false);boolean disponible=lectura.getValue();
                     Producto seleccionado = tblProductos.getSelectionModel().getSelectedItem();
                     if (seleccionado != null && seleccionado.getId() == productoId){
-                        seleccionado.setDisponible(disponible);
+                        disponibilidadTemporal.put(productoId, disponible);
                         seleccionSinStock.set(!disponible);
                         tblProductos.refresh();
                         lblEstado.setText(disponible ? "Hay stock para esta selección." : "No hay stock suficiente para esta selección.");
@@ -445,7 +451,7 @@ public class TomaPedidosController {
 
     // Restaura el estado de stock de la receta base guardado al cargar el catálogo.
     private void restaurarDisponibilidadBase(Producto producto){
-        producto.setDisponible(disponibilidadBase.getOrDefault(producto.getId(), producto.isDisponible()));
+        disponibilidadTemporal.remove(producto.getId());
         seleccionSinStock.set(!producto.isDisponible());
         tblProductos.refresh();
     }
