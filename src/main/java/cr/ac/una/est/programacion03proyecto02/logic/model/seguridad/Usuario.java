@@ -51,4 +51,9 @@ public class Usuario {
     public boolean isActivo() {
         return activo;
     }
+
+    /** Devuelve una copia igual salvo el estado activo (para activar/desactivar cuentas). */
+    public Usuario conActivo(boolean activo) {
+        return new Usuario(id, nombreUsuario, hash, rol, activo);
+    }
 }

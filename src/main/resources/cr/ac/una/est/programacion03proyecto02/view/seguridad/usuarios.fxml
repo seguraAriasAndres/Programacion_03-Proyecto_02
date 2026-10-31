@@ -21,7 +21,9 @@
    </GridPane>
    <HBox spacing="10" alignment="CENTER_LEFT"><CheckBox fx:id="chkActivo" text="Activa" selected="true"/>
     <Button fx:id="btnCrearUsuario" text="Crear usuario" onAction="#onCrear" styleClass="button-primary"/>
+    <Button fx:id="btnGuardarCambios" text="Guardar cambios" onAction="#onGuardarCambios" disable="true"/>
     <Button fx:id="btnActualizar" text="Actualizar lista" onAction="#onActualizar"/>
+    <Button fx:id="btnCambiarEstado" text="Desactivar seleccionado" onAction="#onCambiarEstado" disable="true"/>
    </HBox>
   </VBox>
  </VBox></top>

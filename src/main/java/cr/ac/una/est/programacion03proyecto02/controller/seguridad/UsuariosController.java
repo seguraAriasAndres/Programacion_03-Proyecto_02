@@ -24,6 +24,8 @@ public final class UsuariosController {
     @FXML private TableView<ResumenUsuario> tblUsuarios;
     @FXML private TableColumn<ResumenUsuario,Long> colId;
     @FXML private TableColumn<ResumenUsuario,String> colNombre,colRol,colActivo;
+    @FXML private Button btnCambiarEstado;
+    @FXML private Button btnGuardarCambios;
 
     public UsuariosController(UsuariosService usuarios,NavegadorVistas navegador) {
         this.usuarios=Objects.requireNonNull(usuarios); this.navegador=Objects.requireNonNull(navegador);
@@ -35,9 +37,48 @@ public final class UsuariosController {
         colRol.setCellValueFactory(c->new ReadOnlyObjectWrapper<>(c.getValue().rol().name()));
         colActivo.setCellValueFactory(c->new ReadOnlyObjectWrapper<>(c.getValue().activo()?"Sí":"No"));
         tblUsuarios.setPlaceholder(new Label("No hay cuentas registradas."));
+        tblUsuarios.getSelectionModel().selectedItemProperty().addListener((obs, anterior, actual) -> {
+            boolean haySeleccion = actual != null;
+            btnCambiarEstado.setDisable(!haySeleccion);
+            btnCambiarEstado.setText(haySeleccion && actual.activo() ? "Desactivar seleccionado" : "Reactivar seleccionado");
+            btnGuardarCambios.setDisable(!haySeleccion);
+            if (haySeleccion) {
+                txtUsuario.setText(actual.nombreUsuario());
+                cmbRol.setValue(actual.rol());
+                chkActivo.setSelected(actual.activo());
+                txtClave.clear();
+                txtConfirmacion.clear();
+            }
+        });
         onActualizar();
     }
     @FXML private void onActualizar() { ejecutar(usuarios::listar,"Cuentas actualizadas."); }
+    @FXML private void onCambiarEstado() {
+        ResumenUsuario seleccionado = tblUsuarios.getSelectionModel().getSelectedItem();
+        if (seleccionado == null) return;
+        boolean nuevoEstado = !seleccionado.activo();
+        ejecutar(() -> {
+            usuarios.cambiarEstado(seleccionado.id(), nuevoEstado);
+            return usuarios.listar();
+        }, "Estado de cuenta actualizado.");
+    }
+    @FXML private void onGuardarCambios() {
+        ResumenUsuario seleccionado = tblUsuarios.getSelectionModel().getSelectedItem();
+        if (seleccionado == null) return;
+        String nombre = txtUsuario.getText();
+        String clave = txtClave.getText();
+        String confirmacion = txtConfirmacion.getText();
+        if (clave != null && !clave.isBlank() && !Objects.equals(clave, confirmacion)) {
+            lblMensaje.setText("La confirmación de clave no coincide.");
+            return;
+        }
+        Rol rol = cmbRol.getValue();
+        boolean activo = chkActivo.isSelected();
+        ejecutar(() -> {
+            usuarios.editarUsuario(seleccionado.id(), nombre, rol, activo, clave);
+            return usuarios.listar();
+        }, "Usuario actualizado.");
+    }
     @FXML private void onCrear() {
         if (!Objects.equals(txtClave.getText(),txtConfirmacion.getText())) {
             lblMensaje.setText("La confirmación de clave no coincide."); return;
@@ -58,10 +99,14 @@ public final class UsuariosController {
         tarea.setOnSucceeded(e->{
             raiz.setDisable(false); tblUsuarios.getItems().setAll(tarea.getValue()); lblMensaje.setText(mensaje);
             txtClave.clear(); txtConfirmacion.clear();
+            tblUsuarios.getSelectionModel().clearSelection();
+            btnGuardarCambios.setDisable(true);
             if(mensaje.startsWith("Cuenta creada"))txtUsuario.clear();
         });
         tarea.setOnFailed(e->{
             raiz.setDisable(false); txtClave.clear(); txtConfirmacion.clear();
+            tblUsuarios.getSelectionModel().clearSelection();
+            btnGuardarCambios.setDisable(true);
             lblMensaje.setText(tarea.getException().getMessage());
         });
         new Thread(tarea,"administrar-usuarios").start();
