@@ -1,0 +1,473 @@
+/* ==========================================================================
+   Diseño frío y estilos comunes (antes app.css).
+
+   El selector recorre frío, cálido y personalizado. NavegadorVistas conserva
+   esta base y añade app-calido.css o app-personalizado.css por separado.
+   La paleta de cada cliente se configura en app-personalizado.css.
+
+   Los FXML no referencian esta hoja: el navegador la adjunta a cada escena.
+   ========================================================================== */
+
+.root{
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 13px;
+    -fx-base: #ffffff;
+    -fx-background: #f3f5f7;
+    -fx-control-inner-background: #ffffff;
+    -fx-primary-color: #ffffff;
+    -fx-secondary-color: #f3f5f7;
+    -fx-border-color-soft: #d9e0e6;
+    -fx-accent-color: #20aebe;
+    -fx-accent-color-hover: #168b9a;
+    -fx-text-color-primary: #18314a;
+    -fx-text-color-secondary: #64748b;
+    -fx-focus-color: #20aebe;
+    -fx-faint-focus-color: rgba(32, 174, 190, 0.18);
+    -fx-background-color: -fx-secondary-color;
+}
+
+.label{
+    -fx-text-fill: -fx-text-color-primary;
+    -fx-font-size: 13px;
+}
+
+.page-title{
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-color-primary;
+}
+
+.section-title{
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-color-primary;
+}
+
+.metric-value{
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-color-primary;
+}
+
+.page-subtitle{
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-text-color-secondary;
+}
+
+.muted-text{
+    -fx-text-fill: -fx-text-color-secondary;
+}
+
+VBox,
+HBox{
+    -fx-spacing: 10px;
+}
+
+.page-container{
+    -fx-padding: 20px;
+    -fx-background-color: -fx-secondary-color;
+}
+
+.card{
+    -fx-padding: 16px;
+    -fx-background-color: -fx-primary-color;
+    -fx-background-radius: 8px;
+    -fx-border-color: -fx-border-color-soft;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+}
+
+.toolbar{
+    -fx-padding: 10px;
+    -fx-spacing: 8px;
+    -fx-background-color: -fx-primary-color;
+    -fx-background-radius: 6px;
+    -fx-border-color: -fx-border-color-soft;
+    -fx-border-radius: 6px;
+}
+
+.action-group{
+    -fx-padding: 8px 10px;
+    -fx-spacing: 7px;
+    -fx-background-color: -fx-primary-color;
+    -fx-background-radius: 6px;
+    -fx-border-color: -fx-border-color-soft;
+    -fx-border-radius: 6px;
+}
+
+.action-group-title{
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-color-secondary;
+}
+
+.button{
+    -fx-min-height: 36px;
+    -fx-padding: 8px 14px;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-color-primary;
+    -fx-background-color: #e9eef2;
+    -fx-background-radius: 6px;
+    -fx-background-insets: 0;
+    -fx-border-color: -fx-border-color-soft;
+    -fx-border-radius: 6px;
+    -fx-border-width: 1px;
+}
+
+.button:hover{
+    -fx-background-color: #dce5eb;
+}
+
+.button:armed{
+    -fx-background-color: #cbd7df;
+}
+
+.button:focused{
+    -fx-border-color: -fx-accent-color;
+    -fx-border-width: 2px;
+}
+
+.icono{
+    -fx-fill: -fx-text-color-primary;
+}
+
+.button-primary .icono,
+.button-accent .icono,
+.button-danger .icono{
+    -fx-fill: #ffffff;
+}
+
+.button-warning .icono{
+    -fx-fill: #704b15;
+}
+
+.button-primary{
+    -fx-text-fill: #ffffff;
+    -fx-background-color: #18314a;
+    -fx-border-color: #18314a;
+}
+
+.button-primary:hover{
+    -fx-background-color: #244766;
+    -fx-border-color: #244766;
+}
+
+.button-primary:armed{
+    -fx-background-color: #102337;
+    -fx-border-color: #102337;
+}
+
+.button-secondary{
+    -fx-text-fill: -fx-text-color-primary;
+    -fx-background-color: #e9eef2;
+}
+
+.button-accent{
+    -fx-text-fill: #ffffff;
+    -fx-background-color: -fx-accent-color;
+    -fx-border-color: -fx-accent-color;
+}
+
+.button-accent:hover{
+    -fx-background-color: -fx-accent-color-hover;
+    -fx-border-color: -fx-accent-color-hover;
+}
+
+.module-card{
+    -fx-min-width: 320px;
+    -fx-min-height: 150px;
+    -fx-padding: 16px 20px;
+    -fx-font-size: 16px;
+    -fx-text-fill: -fx-text-color-primary;
+    -fx-background-color: -fx-primary-color;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+}
+
+.module-card:hover{
+    -fx-background-color: -fx-primary-color;
+    -fx-border-color: -fx-accent-color;
+}
+
+.module-card .icono{
+    -fx-fill: -fx-accent-color;
+}
+
+.module-description{
+    -fx-font-size: 12px;
+    -fx-font-weight: normal;
+    -fx-text-fill: -fx-text-color-secondary;
+}
+
+.module-card.button-accent{
+    -fx-background-color: -fx-accent-color;
+    -fx-border-color: -fx-accent-color;
+    -fx-text-fill: #ffffff;
+}
+
+.module-card.button-accent:hover{
+    -fx-background-color: -fx-accent-color-hover;
+    -fx-border-color: -fx-accent-color-hover;
+}
+
+.module-card.button-accent .icono{
+    -fx-fill: #ffffff;
+}
+
+.module-card.button-accent .module-description{
+    -fx-text-fill: #e2eaf0;
+}
+
+.button-warning{
+    -fx-text-fill: #704b15;
+    -fx-background-color: #f4dfad;
+    -fx-border-color: #e0c27d;
+}
+
+.button-warning:hover{
+    -fx-background-color: #ecd293;
+}
+
+.button-danger{
+    -fx-text-fill: #ffffff;
+    -fx-background-color: #b54747;
+    -fx-border-color: #b54747;
+}
+
+.button-danger:hover{
+    -fx-background-color: #963939;
+    -fx-border-color: #963939;
+}
+
+.text-field,
+.password-field,
+.combo-box,
+.choice-box,
+.date-picker{
+    -fx-min-height: 36px;
+    -fx-padding: 7px 9px;
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-text-color-primary;
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 6px;
+    -fx-border-color: -fx-border-color-soft;
+    -fx-border-radius: 6px;
+    -fx-border-width: 1px;
+}
+
+.text-field:focused,
+.password-field:focused,
+.combo-box:focused,
+.choice-box:focused,
+.date-picker:focused{
+    -fx-border-color: -fx-accent-color;
+    -fx-border-width: 2px;
+}
+
+.text-field:disabled,
+.password-field:disabled,
+.combo-box:disabled,
+.choice-box:disabled,
+.date-picker:disabled{
+    -fx-opacity: 0.7;
+    -fx-background-color: #edf0f2;
+}
+
+.check-box{
+    -fx-text-fill: -fx-text-color-primary;
+    -fx-padding: 4px;
+}
+
+.list-view,
+.table-view{
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 6px;
+    -fx-border-color: -fx-border-color-soft;
+    -fx-border-radius: 6px;
+    -fx-border-width: 1px;
+}
+
+.list-cell,
+.table-row-cell{
+    -fx-cell-size: 36px;
+    -fx-padding: 7px 9px;
+    -fx-background-color: #ffffff;
+    -fx-text-fill: -fx-text-color-primary;
+}
+
+.list-cell:odd,
+.table-row-cell:odd{
+    -fx-background-color: #f7f9fa;
+}
+
+/* La celda interna de un selector no debe heredar la altura fija de una fila de lista. */
+.combo-box > .list-cell {
+    -fx-cell-size: -1;
+    -fx-padding: 0 4px;
+    -fx-min-height: 18px;
+}
+.combo-box > .list-cell:filled:selected {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+}
+.date-picker > .text-field {
+    -fx-min-height: 0;
+    -fx-padding: 0 4px;
+}
+#lstOpciones .list-cell {
+    -fx-cell-size: -1;
+    -fx-padding: 4px 6px;
+}
+
+.list-cell:selected,
+.table-row-cell:selected{
+    -fx-background-color: #d8f1f3;
+    -fx-text-fill: -fx-text-color-primary;
+}
+
+.table-view .column-header-background{
+    -fx-background-color: #e9eef2;
+    -fx-background-radius: 6px 6px 0 0;
+}
+
+.table-view .column-header,
+.table-view .filler{
+    -fx-size: 40px;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent -fx-border-color-soft transparent;
+}
+
+.table-view .column-header .label{
+    -fx-padding: 7px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-color-primary;
+}
+
+.scroll-pane{
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.scroll-pane > .viewport{
+    -fx-background-color: transparent;
+}
+
+.separator:horizontal .line{
+    -fx-border-color: -fx-border-color-soft;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.status-message{
+    -fx-padding: 8px 10px;
+    -fx-background-color: #e9eef2;
+    -fx-background-radius: 6px;
+    -fx-text-fill: -fx-text-color-primary;
+}
+
+.status-success{
+    -fx-text-fill: #28734d;
+}
+
+.status-warning{
+    -fx-text-fill: #9a6418;
+}
+
+.status-error{
+    -fx-text-fill: #a33f3f;
+}
+
+.status-accent{
+    -fx-text-fill: #087b89;
+}
+
+.stock-pill{
+    -fx-padding: 4px 9px;
+    -fx-background-radius: 12px;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.stock-low,
+.status-warning{
+    -fx-text-fill: #8b5a13;
+    -fx-background-color: #fff0d0;
+}
+
+.stock-ok,
+.availability-available,
+.status-success{
+    -fx-text-fill: #216442;
+    -fx-background-color: #e1f2e8;
+}
+
+.availability-unavailable,
+.status-error{
+    -fx-text-fill: #9d3434;
+    -fx-background-color: #f8e2e0;
+}
+
+.status-neutral{
+    -fx-text-fill: -fx-text-color-secondary;
+    -fx-background-color: #edf0f2;
+}
+
+.tooltip{
+    -fx-padding: 6px 9px;
+    -fx-background-color: #18314a;
+    -fx-background-radius: 4px;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 12px;
+}
+
+
+/* Marco administrativo persistente; las pantallas de puesto no usan este menú. */
+.admin-shell { -fx-background-color: -fx-secondary-color; -fx-padding: 0; }
+.admin-header {
+    -fx-padding: 14px 18px; -fx-spacing: 12px;
+    -fx-background-color: -fx-primary-color;
+    -fx-border-color: transparent transparent -fx-border-color-soft transparent;
+}
+.admin-sidebar {
+    -fx-padding: 24px 14px; -fx-spacing: 8px;
+    -fx-background-color: -fx-primary-color;
+    -fx-border-color: transparent -fx-border-color-soft transparent transparent;
+}
+.admin-sidebar-title {
+    -fx-font-size: 11px; -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-color-secondary; -fx-padding: 6px 8px;
+}
+.admin-sidebar .admin-nav-button {
+    -fx-alignment: CENTER_LEFT; -fx-padding: 12px 10px;
+    -fx-background-color: transparent; -fx-border-color: transparent;
+    -fx-text-fill: -fx-text-color-primary;
+}
+.admin-sidebar .admin-nav-button:hover { -fx-background-color: -fx-secondary-color; }
+.admin-sidebar .admin-nav-active, .admin-sidebar .admin-nav-active:hover {
+    -fx-background-color: -fx-accent-color; -fx-text-fill: #ffffff;
+    -fx-border-color: -fx-accent-color;
+}
+.admin-home { -fx-padding: 30px; -fx-spacing: 24px; }
+.admin-home-heading { -fx-padding: 8px 0 16px 0; }
+.admin-home-title { -fx-font-size: 29px; -fx-font-weight: bold; }
+.admin-home-brand {
+    -fx-background-color: transparent;
+    -fx-background-image: url("iconos/logo-frio.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: contain;
+}
+.admin-home-scroll, .admin-home-scroll > .viewport { -fx-background-color: -fx-secondary-color; }
+.admin-module-content { -fx-padding: 18px; }
+
+/* Inicio: métricas y alertas, sin duplicar la navegación lateral. */
+.home-metric-card { -fx-min-height: 145px; -fx-padding: 20px 16px; }
+.home-metric-value { -fx-font-size: 25px; -fx-font-weight: bold; -fx-text-fill: -fx-text-color-primary; }
+.home-stock-card { -fx-padding: 20px; }
+.home-stock-row {
+    -fx-padding: 10px 12px;
+    -fx-background-color: -fx-secondary-color;
+    -fx-background-radius: 6px;
+    -fx-border-color: -fx-border-color-soft;
+    -fx-border-radius: 6px;
+}

@@ -1,0 +1,138 @@
+/* Paleta crema y otoño que complementa app-frio.css sin alterar los FXML. */
+.root {
+    -fx-base: #fbf5e9;
+    -fx-background: #f4ead8;
+    -fx-control-inner-background: #fffaf1;
+    -fx-primary-color: #fffaf1;
+    -fx-secondary-color: #f4ead8;
+    -fx-border-color-soft: #dfcfb7;
+    -fx-accent-color: #b66b3d;
+    -fx-accent-color-hover: #98532f;
+    -fx-text-color-primary: #46382f;
+    -fx-text-color-secondary: #806e5d;
+    -fx-focus-color: #b66b3d;
+    -fx-faint-focus-color: rgba(182, 107, 61, 0.18);
+    -fx-background-color: -fx-secondary-color;
+}
+
+.button {
+    -fx-background-color: #eee2cf;
+}
+
+.button:hover {
+    -fx-background-color: #e2d0b6;
+}
+
+.button:armed {
+    -fx-background-color: #d6c0a0;
+}
+
+.button-primary {
+    -fx-background-color: #684a38;
+    -fx-border-color: #684a38;
+    -fx-text-fill: #fffaf1;
+}
+
+.button-primary:hover {
+    -fx-background-color: #523a2d;
+    -fx-border-color: #523a2d;
+}
+
+.button-primary:armed {
+    -fx-background-color: #3f2c22;
+    -fx-border-color: #3f2c22;
+}
+
+.button-accent {
+    -fx-background-color: -fx-accent-color;
+    -fx-border-color: -fx-accent-color;
+    -fx-text-fill: #ffffff;
+}
+
+.button-accent:hover {
+    -fx-background-color: -fx-accent-color-hover;
+    -fx-border-color: -fx-accent-color-hover;
+}
+
+.button-warning {
+    -fx-text-fill: #704b15;
+    -fx-background-color: #f2dfb4;
+    -fx-border-color: #dfc58e;
+}
+
+.button-warning .icono {
+    -fx-fill: #704b15;
+}
+
+.text-field,
+.password-field,
+.combo-box,
+.choice-box,
+.date-picker,
+.list-view,
+.table-view,
+.list-cell,
+.table-row-cell {
+    -fx-background-color: #fffaf1;
+}
+
+.text-field:disabled,
+.password-field:disabled,
+.combo-box:disabled,
+.choice-box:disabled,
+.date-picker:disabled {
+    -fx-background-color: #eee2cf;
+    -fx-opacity: 0.78;
+}
+
+.list-cell:odd,
+.table-row-cell:odd,
+.table-view .column-header-background {
+    -fx-background-color: #f2e7d6;
+}
+
+.list-cell:selected,
+.table-row-cell:selected {
+    -fx-background-color: #ead2b8;
+}
+
+.status-message {
+    -fx-background-color: #eee2cf;
+}
+
+.stock-low,
+.status-warning {
+    -fx-text-fill: #805018;
+    -fx-background-color: #f7e5c3;
+}
+
+.stock-ok,
+.availability-available,
+.status-success {
+    -fx-text-fill: #365f42;
+    -fx-background-color: #e2ecd9;
+}
+
+.availability-unavailable,
+.status-error {
+    -fx-text-fill: #8f3e34;
+    -fx-background-color: #f2ddd3;
+}
+
+.status-neutral {
+    -fx-text-fill: #6f5d4c;
+    -fx-background-color: #eee2cf;
+}
+
+.tooltip {
+    -fx-background-color: #684a38;
+}
+
+/* Logo de Inicio para el tema cálido. */
+.admin-home-brand {
+    -fx-background-color: transparent;
+    -fx-background-image: url("iconos/logo-calido.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: contain;
+}

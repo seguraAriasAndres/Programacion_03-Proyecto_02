@@ -7,7 +7,7 @@ import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.enums.TipoOpc
 import cr.ac.una.est.programacion03proyecto02.logic.model.inventario.ingrediente;
 import cr.ac.una.est.programacion03proyecto02.logic.model.inventario.recetaItem;
 import cr.ac.una.est.programacion03proyecto02.logic.model.seguridad.enums.Rol;
-import cr.ac.una.est.programacion03proyecto02.logic.service.catalogo.CatalogoService;
+import cr.ac.una.est.programacion03proyecto02.logic.service.catalogo.catalogoService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.inventario.iinventarioService;
 import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.SesionActual;
 import cr.ac.una.est.programacion03proyecto02.persistence.connection.ConexionDB;
@@ -33,7 +33,7 @@ import java.util.Objects;
 
 //controlador para crear o editar productos, opciones y recetas
 public class ProductoEditorController {
-    private final CatalogoService catalogo;
+    private final catalogoService catalogo;
     private final iinventarioService inventario;
     private final SesionActual sesion;
     private final NavegadorVistas navegador;
@@ -71,7 +71,7 @@ public class ProductoEditorController {
 
     @FXML private Label lblMensaje;
 
-    public ProductoEditorController(CatalogoService catalogo, iinventarioService inventario, SesionActual sesion, NavegadorVistas navegador, ConexionDB conexionDB) {
+    public ProductoEditorController(catalogoService catalogo, iinventarioService inventario, SesionActual sesion, NavegadorVistas navegador, ConexionDB conexionDB) {
         this.catalogo = Objects.requireNonNull(catalogo);
         this.inventario = Objects.requireNonNull(inventario);
         this.sesion = Objects.requireNonNull(sesion);

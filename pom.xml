@@ -18,6 +18,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>7.1.0</version>
+        </dependency>
+        <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
             <version>${mysql.connector.version}</version>
@@ -64,6 +69,10 @@
                 <version>3.5.4</version>
                 <configuration>
                     <failIfNoTests>true</failIfNoTests>
+                    <systemPropertyVariables>
+                        <!-- Cada prueba JDBC usa una conexión física aislada y tablas temporales. -->
+                        <restaurante.pool>false</restaurante.pool>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
             <plugin>
@@ -130,6 +139,8 @@
                                 <testInclude>cr/ac/una/est/programacion03proyecto02/logic/repository/pedidos/**/*Test.java</testInclude>
                                 <testInclude>cr/ac/una/est/programacion03proyecto02/logic/service/pedidos/**/*Test.java</testInclude>
                                 <testInclude>cr/ac/una/est/programacion03proyecto02/persistence/dao/pedidos/**/*Test.java</testInclude>
+                                <testInclude>cr/ac/una/est/programacion03proyecto02/persistence/dao/catalogo/**/*Test.java</testInclude>
+                                <testInclude>cr/ac/una/est/programacion03proyecto02/persistence/dao/inventario/**/*Test.java</testInclude>
                                 <testInclude>cr/ac/una/est/programacion03proyecto02/persistence/connection/**/*Test.java</testInclude>
                             </testIncludes>
                         </configuration>

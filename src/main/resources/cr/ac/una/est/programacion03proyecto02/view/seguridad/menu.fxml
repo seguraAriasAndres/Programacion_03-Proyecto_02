@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import cr.ac.una.est.programacion03proyecto02.view.personalizacion.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane prefHeight="800" prefWidth="1150" styleClass="admin-shell" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cr.ac.una.est.programacion03proyecto02.controller.seguridad.menuController">
+ <top><VBox spacing="0">
+  <HBox alignment="CENTER_LEFT" spacing="12" styleClass="admin-header">
+   <Button fx:id="btnMenuLateral" accessibleText="Contraer barra de módulos" onAction="#onAlternarBarra" styleClass="button-secondary" text="Ocultar menú" />
+   <Label fx:id="lblSeccion" styleClass="section-title" text="Inicio" />
+   <Region HBox.hgrow="ALWAYS" />
+   <Label fx:id="lblUsuario" styleClass="muted-text" />
+   <BotonTema fx:id="btnTema" />
+   <Button fx:id="btnCerrarSesion" onAction="#onCerrarSesion" styleClass="button-secondary" text="Cerrar sesión" />
+  </HBox>
+  <Label fx:id="lblEstadoNavegacion" styleClass="status-message,status-error" wrapText="true" />
+ </VBox></top>
+ <left><VBox fx:id="barraLateral" minWidth="205" prefWidth="205" spacing="8" styleClass="admin-sidebar">
+  <Label styleClass="admin-sidebar-title" text="ADMINISTRACIÓN" />
+  <Button fx:id="btnInicio" maxWidth="Infinity" onAction="#onInicio" styleClass="admin-nav-button" text="Inicio" />
+  <Separator />
+  <Label styleClass="admin-sidebar-title" text="MÓDULOS" />
+  <Button fx:id="btnInventario" maxWidth="Infinity" onAction="#onInventario" styleClass="admin-nav-button" text="Inventario" />
+  <Button fx:id="btnCatalogo" maxWidth="Infinity" onAction="#onCatalogo" styleClass="admin-nav-button" text="Catálogo de productos" wrapText="true" />
+  <Button fx:id="btnReportes" maxWidth="Infinity" onAction="#onReportes" styleClass="admin-nav-button" text="Reportes" />
+  <Button fx:id="btnUsuarios" maxWidth="Infinity" onAction="#onUsuarios" styleClass="admin-nav-button" text="Usuarios y roles" />
+  <Region VBox.vgrow="ALWAYS" />
+  <Label styleClass="muted-text" text="Elige un módulo. Puedes cambiar entre ellos desde esta barra." wrapText="true" />
+ </VBox></left>
+ <center><StackPane fx:id="contenedorPrincipal" minWidth="0">
+  <ScrollPane fx:id="paginaInicio" fitToWidth="true" hbarPolicy="NEVER" styleClass="admin-home-scroll">
+   <content><VBox alignment="TOP_CENTER" spacing="24" styleClass="admin-home">
+    <HBox alignment="CENTER_LEFT" spacing="24" maxWidth="1050" styleClass="admin-home-heading">
+     <Region fx:id="marcaInicio" maxHeight="150" maxWidth="150" minHeight="150" minWidth="150" prefHeight="150" prefWidth="150" styleClass="admin-home-brand" />
+     <VBox alignment="CENTER_LEFT" spacing="8" HBox.hgrow="ALWAYS">
+      <Label fx:id="lblBienvenida" styleClass="page-title,admin-home-title" text="Bienvenido" wrapText="true" />
+      <Label fx:id="lblFechaInicio" styleClass="page-subtitle" wrapText="true" />
+      <Label styleClass="muted-text" text="Así va tu restaurante hoy." wrapText="true" />
+     </VBox>
+    </HBox>
+    <VBox maxWidth="1050" spacing="16">
+     <HBox alignment="CENTER_LEFT" spacing="12">
+      <Label styleClass="section-title" text="Resumen del día" />
+      <Region HBox.hgrow="ALWAYS" />
+      <Button fx:id="btnActualizarInicio" onAction="#onActualizarInicio" styleClass="button-secondary" text="Actualizar" />
+     </HBox>
+     <GridPane hgap="12" styleClass="home-metrics">
+      <columnConstraints><ColumnConstraints hgrow="ALWAYS" percentWidth="34" /><ColumnConstraints hgrow="ALWAYS" percentWidth="32" /><ColumnConstraints hgrow="ALWAYS" percentWidth="34" /></columnConstraints>
+      <VBox minWidth="0" spacing="12" styleClass="card,home-metric-card">
+       <Label styleClass="muted-text" text="Ventas del día" wrapText="true" />
+       <Label fx:id="lblVentasHoy" minWidth="0" maxWidth="Infinity" styleClass="home-metric-value" text="—" />
+       <Label styleClass="muted-text" text="Total cobrado hoy" wrapText="true" />
+      </VBox>
+      <VBox minWidth="0" spacing="12" styleClass="card,home-metric-card" GridPane.columnIndex="1">
+       <Label styleClass="muted-text" text="Pedidos completados" wrapText="true" />
+       <Label fx:id="lblPedidosHoy" minWidth="0" maxWidth="Infinity" styleClass="home-metric-value" text="—" />
+       <Label styleClass="muted-text" text="Pedidos cobrados hoy" wrapText="true" />
+      </VBox>
+      <VBox minWidth="0" spacing="12" styleClass="card,home-metric-card" GridPane.columnIndex="2">
+       <Label styleClass="muted-text" text="Ticket promedio" wrapText="true" />
+       <Label fx:id="lblTicketPromedio" minWidth="0" maxWidth="Infinity" styleClass="home-metric-value" text="—" />
+       <Label styleClass="muted-text" text="Promedio por pedido cobrado" wrapText="true" />
+      </VBox>
+     </GridPane>
+     <Label fx:id="lblEstadoVentas" styleClass="muted-text" wrapText="true" />
+     <VBox spacing="12" styleClass="card,home-stock-card">
+      <Label styleClass="section-title" text="Alertas de inventario" />
+      <Label fx:id="lblEstadoInventario" styleClass="muted-text" wrapText="true" />
+      <VBox fx:id="listaAlertasInicio" spacing="8" />
+     </VBox>
+    </VBox>
+   </VBox></content>
+  </ScrollPane>
+ </StackPane></center>
+</BorderPane>

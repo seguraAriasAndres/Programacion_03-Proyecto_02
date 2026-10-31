@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import cr.ac.una.est.programacion03proyecto02.view.personalizacion.BotonTema?>
+
+<?import cr.ac.una.est.programacion03proyecto02.view.iconos.Icono?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane fx:id="raiz" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="cr.ac.una.est.programacion03proyecto02.controller.pedidos.PedidosActivosController"
+            prefWidth="1100" prefHeight="690" styleClass="page-container">
+    <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+    <top>
+        <VBox spacing="12">
+            <HBox alignment="CENTER_LEFT" spacing="8">
+                <Label text="Pedidos activos" styleClass="page-title"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <BotonTema fx:id="btnTema"/>
+                <Button fx:id="btnVolver" text="Cerrar sesión" onAction="#onVolver" styleClass="button-secondary,role-session-action"/>
+                <Button fx:id="btnActualizar" text="Actualizar" onAction="#onActualizar"/>
+                <Button fx:id="btnNuevo" text="Nuevo pedido" onAction="#onNuevo" styleClass="button-accent" graphicTextGap="8.0"><graphic><Icono tipo="NUEVO"/></graphic></Button>
+            </HBox>
+            <HBox spacing="10" alignment="CENTER_LEFT" styleClass="toolbar">
+                <VBox styleClass="action-group">
+                    <Label text="Pedido" styleClass="action-group-title"/>
+                    <HBox spacing="8">
+                        <Button fx:id="btnAbrir" text="Abrir pedido" onAction="#onAbrir"/>
+                        <Button fx:id="btnCancelar" text="Cancelar" onAction="#onCancelar" styleClass="button-danger"/>
+                    </HBox>
+                </VBox>
+                <Separator orientation="VERTICAL"/>
+                <VBox styleClass="action-group">
+                    <Label text="Preparación" styleClass="action-group-title"/>
+                    <HBox spacing="8">
+                        <Button fx:id="btnPreparar" text="Iniciar preparación" onAction="#onPreparar"/>
+                        <Button fx:id="btnEntregar" text="Entregar" onAction="#onEntregar"/>
+                    </HBox>
+                </VBox>
+                <Separator orientation="VERTICAL"/>
+                <VBox styleClass="action-group">
+                    <Label text="Cobro" styleClass="action-group-title"/>
+                    <HBox spacing="8">
+                        <Button fx:id="btnCobrar" text="Cobrar" onAction="#onCobrar" graphicTextGap="8.0"><graphic><Icono tipo="COBRAR"/></graphic></Button>
+                        <Button fx:id="btnVerRecibo" text="Ver recibo" onAction="#onVerRecibo"/>
+                    </HBox>
+                </VBox>
+            </HBox>
+            <Label text="Seleccione un pedido. Los botones disponibles dependen de su preparación y pago." wrapText="true" styleClass="muted-text"/>
+        </VBox>
+    </top>
+    <center>
+        <TableView fx:id="tblPedidos" editable="false">
+            <BorderPane.margin><Insets top="16" bottom="16"/></BorderPane.margin>
+            <columns>
+                <TableColumn fx:id="colId" text="Pedido" prefWidth="120"/>
+                <TableColumn fx:id="colCliente" text="Cliente" prefWidth="230"/>
+                <TableColumn fx:id="colFecha" text="Creación" prefWidth="160"/>
+                <TableColumn fx:id="colPreparacion" text="Preparación" prefWidth="170"/>
+                <TableColumn fx:id="colPago" text="Pago" prefWidth="120"/>
+                <TableColumn fx:id="colTotal" text="Total" prefWidth="120"/>
+            </columns>
+            <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/></columnResizePolicy>
+        </TableView>
+    </center>
+    <bottom>
+        <Label fx:id="lblEstado" text="Cargando pedidos..." wrapText="true" styleClass="status-message"/>
+    </bottom>
+</BorderPane>

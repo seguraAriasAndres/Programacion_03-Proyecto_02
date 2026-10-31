@@ -29,7 +29,7 @@ public class LineaPedidoDAO {
                    precio_unitario, cantidad FROM linea_pedido WHERE pedido_id = ? ORDER BY id
             """;
     private static final String CARGAR_OPCIONES = """
-            SELECT o.linea_pedido_id, o.opcion_producto_id
+            SELECT o.linea_pedido_id, o.opcion_producto_id, o.cantidad
             FROM linea_pedido_opcion o JOIN linea_pedido l ON l.id = o.linea_pedido_id
             WHERE l.pedido_id = ? ORDER BY o.linea_pedido_id, o.opcion_producto_id
             """;
@@ -48,7 +48,7 @@ public class LineaPedidoDAO {
     private static final String ELIMINAR = "DELETE FROM linea_pedido WHERE id = ? AND pedido_id = ?";
     private static final String ELIMINAR_OPCIONES = "DELETE FROM linea_pedido_opcion WHERE linea_pedido_id = ?";
     private static final String INSERTAR_OPCION = """
-            INSERT INTO linea_pedido_opcion (linea_pedido_id, opcion_producto_id) VALUES (?, ?)
+            INSERT INTO linea_pedido_opcion (linea_pedido_id, opcion_producto_id, cantidad) VALUES (?, ?, ?)
             """;
 
     List<lineaPedido> sincronizar(long pedidoId, List<lineaPedido> lineas, Connection conexion) throws SQLException {
@@ -95,6 +95,7 @@ public class LineaPedidoDAO {
                 try (PreparedStatement sentencia = conexion.prepareStatement(INSERTAR_OPCION)) {
                     sentencia.setLong(1, id);
                     sentencia.setLong(2, opcionId);
+                    sentencia.setInt(3,dato.linea().getCantidadesOpciones().get(opcionId));
                     if (sentencia.executeUpdate() != 1) {
                         throw new SQLException("No se pudo guardar una opcion de la linea.");
                     }
@@ -224,13 +225,15 @@ public class LineaPedidoDAO {
     List<lineaPedido> cargar(long pedidoId, Connection conexion, boolean bloquear) throws SQLException {
         // Reconstruye las líneas y sus IDs de opciones sin consultar catálogo, bloqueándolas si se solicita.
         String bloqueo = bloquear ? " FOR UPDATE" : "";
-        Map<Long, List<Long>> opciones = new HashMap<>();
+        Map<Long, Map<Long,Integer>> opciones = new HashMap<>();
         try (PreparedStatement sentencia = conexion.prepareStatement(CARGAR_OPCIONES + bloqueo)) {
             sentencia.setLong(1, pedidoId);
             try (ResultSet resultado = sentencia.executeQuery()) {
                 while (resultado.next()) {
-                    opciones.computeIfAbsent(resultado.getLong("linea_pedido_id"), id -> new ArrayList<>())
-                            .add(resultado.getLong("opcion_producto_id"));
+                    int cantidad=resultado.getInt("cantidad");
+                    if(resultado.wasNull() || cantidad<=0)throw new SQLException("Una opción tiene cantidad inválida.");
+                    opciones.computeIfAbsent(resultado.getLong("linea_pedido_id"), id -> new java.util.LinkedHashMap<>())
+                            .put(resultado.getLong("opcion_producto_id"),cantidad);
                 }
             }
         }
@@ -242,7 +245,7 @@ public class LineaPedidoDAO {
                     long id = resultado.getLong("id");
                     try {
                         cargadas.add(lineaPedido.reconstruirPersistida(id, resultado.getLong("producto_id"),
-                                opciones.getOrDefault(id, List.of()), resultado.getString("nombre_producto"),
+                                opciones.getOrDefault(id, Map.of()), resultado.getString("nombre_producto"),
                                 resultado.getString("nombre_categoria"), resultado.getString("descripcion_opciones"),
                                 resultado.getBigDecimal("precio_unitario"), resultado.getInt("cantidad")));
                     } catch (IllegalArgumentException | NullPointerException error) {

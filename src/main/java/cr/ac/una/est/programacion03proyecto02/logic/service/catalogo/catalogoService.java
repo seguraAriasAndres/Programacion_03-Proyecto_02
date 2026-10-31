@@ -3,85 +3,185 @@ package cr.ac.una.est.programacion03proyecto02.logic.service.catalogo;
 import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.Categoria;
 import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.OpcionProducto;
 import cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.Producto;
+import cr.ac.una.est.programacion03proyecto02.logic.model.inventario.recetaItem;
 import cr.ac.una.est.programacion03proyecto02.logic.service.inventario.iinventarioService;
 import cr.ac.una.est.programacion03proyecto02.persistence.connection.ConexionDB;
-import cr.ac.una.est.programacion03proyecto02.persistence.dao.pedidos.CategoriaDAO;
-import cr.ac.una.est.programacion03proyecto02.persistence.dao.pedidos.ProductoDAO;
+import cr.ac.una.est.programacion03proyecto02.persistence.dao.catalogo.categoriaDAO;
+import cr.ac.una.est.programacion03proyecto02.persistence.dao.catalogo.productoDAO;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.TreeMap;
 
-//implementa las operaciones del catálogo y delega el acceso a datos a los DAO correspondientes
-public class CatalogoService implements ICatalogoService {
-    private final ProductoDAO productos;
-    private final CategoriaDAO categorias;
+public class catalogoService implements ICatalogoService {
+
+    private final ConexionDB conexionDB;
+    private final productoDAO productos;
+    private final categoriaDAO categorias;
     private final iinventarioService inventario;
 
-    //recibe las dependencias que utiliza el servicio
-    public CatalogoService(ProductoDAO productos, CategoriaDAO categorias, iinventarioService inventario) {
-        this.productos = productos;
-        this.categorias = categorias;
-        this.inventario = inventario;
+    public catalogoService(
+            ConexionDB conexionDB,
+            productoDAO productos,
+            categoriaDAO categorias,
+            iinventarioService inventario
+    ) {
+        this.conexionDB = Objects.requireNonNull(conexionDB);
+        this.productos = Objects.requireNonNull(productos);
+        this.categorias = Objects.requireNonNull(categorias);
+        this.inventario = Objects.requireNonNull(inventario);
     }
 
-    //busca un producto usando la conexión recibida
     @Override
-    public Producto obtenerProducto(int id, Connection c) {
-        return productos.buscar(id, c);
-    }
-
-    //devuelve las categorías activas
-    @Override
-    public List<Categoria> listarCategorias() {
-        return categorias.listarActivas();
-    }
-
-    //devuelve los productos activos de una categoría
-    @Override
-    public List<Producto> listarPorCategoria(int id) {
-        return productos.listarActivos(id);
-    }
-
-    //reúne los productos activos de todas las categorías activas
-    @Override
-    public List<Producto> listarProductosActivos() {
-        List<Producto> lista = new ArrayList<>();
-        for (Categoria categoria : listarCategorias()) {
-            int categoriaId = Math.toIntExact(categoria.getId());
-            lista.addAll(productos.listarActivos(categoriaId));
+    public List<Categoria> listarCategoriasAdministracion()
+            throws SQLException {
+        try (Connection conexion = conexionDB.getConnection()) {
+            return List.copyOf(categorias.listarTodas(conexion));
         }
-        return lista;
+    }
+    
+    @Override
+    public void guardarCategoria(Categoria categoria) throws SQLException {
+        Objects.requireNonNull(categoria, "La categoría no puede ser null.");
+        validarCategoria(categoria);
+    
+        long id = ejecutarTransaccion(
+                conexion -> categorias.guardar(categoria, conexion)
+        );
+    
+        categoria.setId(id);
     }
 
-    //busca el producto y devuelve sus opciones, este método abre y cierra su propia conexión
     @Override
-    public List<OpcionProducto> listarOpcionesDeProducto(int id) {
-        ConexionDB bd = new ConexionDB();
-        try (Connection conexion = bd.getConnection()) {
-            Producto producto = obtenerProducto(id, conexion);
-            if (producto == null || producto.getOpciones() == null) {
-                return new ArrayList<>();
+    public Producto obtenerProducto(
+            long productoId,
+            Connection conexion
+    ) throws SQLException {
+        Objects.requireNonNull(conexion, "La conexión no puede ser null.");
+
+        Producto producto = productos.buscar(productoId, conexion);
+        if (producto == null
+                || !producto.isActivo()
+                || producto.getCategoria() == null
+                || !producto.getCategoria().isActiva()) {
+            throw new NoSuchElementException(
+                    "No existe un producto activo con ID " + productoId + "."
+            );
+        }
+
+        actualizarDisponibilidad(producto, conexion);
+        return producto;
+    }
+
+    @Override
+    public List<Categoria> listarCategorias() throws SQLException {
+        try (Connection conexion = conexionDB.getConnection()) {
+            return List.copyOf(categorias.listarActivas(conexion));
+        }
+    }
+
+    @Override
+    public List<Producto> listarPorCategoria(long categoriaId)
+            throws SQLException {
+        try (Connection conexion = conexionDB.getConnection()) {
+            List<Producto> resultado =
+                    productos.listarPorCategoria(categoriaId, conexion);
+
+            for (Producto producto : resultado) {
+                actualizarDisponibilidad(producto, conexion);
             }
-            return producto.getOpciones();
-        } catch (SQLException error) {
-            throw new IllegalStateException("No se pudieron listar las opciones del producto.", error);
+
+            return List.copyOf(resultado);
         }
     }
 
-    //guarda un producto con su receta y opciones
-    public void guardarProducto(Producto producto) {
-        productos.guardarConRecetas(producto);
+    @Override
+    public List<Producto> listarProductosActivos() throws SQLException {
+        try (Connection conexion = conexionDB.getConnection()) {
+            List<Producto> resultado = productos.listarActivos(conexion);
+
+            for (Producto producto : resultado) {
+                actualizarDisponibilidad(producto, conexion);
+            }
+
+            return List.copyOf(resultado);
+        }
     }
 
-    //guarda una categoría nueva o actualiza una existente
-    public void guardarCategoria(Categoria categoria) {
-        categorias.guardar(categoria);
+    @Override
+    public List<OpcionProducto> listarOpcionesDeProducto(long productoId)
+            throws SQLException {
+        try (Connection conexion = conexionDB.getConnection()) {
+            return obtenerProducto(productoId, conexion).getOpciones();
+        }
     }
 
-    //desactiva un producto sin borrarlo de la base de datos
-    public void desactivarProducto(int id) {
-        productos.desactivar(id);
+    private void actualizarDisponibilidad(
+            Producto producto,
+            Connection conexion
+    ) throws SQLException {
+        Map<Long, Double> cantidades = new TreeMap<>();
+
+        for (recetaItem item : producto.getReceta()) {
+            cantidades.merge(
+                    item.getIngredienteId(),
+                    item.getCantidadRequerida(),
+                    Double::sum
+            );
+        }
+
+        producto.setDisponible(
+                inventario.hayStockSuficiente(cantidades, conexion)
+        );
+    }
+
+    private void validarCategoria(Categoria categoria) {
+        if (categoria.getId() < 0) {
+            throw new IllegalArgumentException(
+                    "El ID de la categoría no puede ser negativo."
+            );
+        }
+    
+        String nombre = categoria.getNombre();
+    
+        if (nombre == null || nombre.isBlank() || nombre.trim().length() > 100) {
+            throw new IllegalArgumentException(
+                    "El nombre de la categoría es obligatorio y admite "
+                            + "hasta 100 caracteres."
+            );
+        }
+    
+        categoria.setNombre(nombre.trim());
+    }
+    
+    private <T> T ejecutarTransaccion(
+            operacionConConexion<T> operacion
+    ) throws SQLException {
+        try (Connection conexion = conexionDB.getConnection()) {
+            conexion.setAutoCommit(false);
+    
+            try {
+                T resultado = operacion.ejecutar(conexion);
+                conexion.commit();
+                return resultado;
+            } catch (SQLException | RuntimeException error) {
+                try {
+                    conexion.rollback();
+                } catch (SQLException errorRollback) {
+                    error.addSuppressed(errorRollback);
+                }
+    
+                throw error;
+            }
+        }
+    }
+    
+    @FunctionalInterface
+    private interface operacionConConexion<T> {
+        T ejecutar(Connection conexion) throws SQLException;
     }
 }

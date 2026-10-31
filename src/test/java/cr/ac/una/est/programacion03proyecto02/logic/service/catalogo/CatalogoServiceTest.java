@@ -19,6 +19,62 @@ import static org.junit.jupiter.api.Assertions.*;
 class CatalogoServiceTest {
 
     @Test
+    void consultaComparteConexionYSumaCantidadesSinErrorBinario() throws SQLException {
+        Connection conexion = conexionDeTransaccion(new AtomicBoolean(), new AtomicBoolean());
+        var producto = new cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.Producto(
+                3_000_000_001L, "Producto", java.math.BigDecimal.ONE, new Categoria(1,"Categoria",true),true);
+        producto.setReceta(java.util.List.of(
+                new cr.ac.una.est.programacion03proyecto02.logic.model.inventario.recetaItem(1,.1),
+                new cr.ac.una.est.programacion03proyecto02.logic.model.inventario.recetaItem(1,.2)));
+        var inactiva = new cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.OpcionProducto(
+                5,"Opcion",cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.enums.TipoOpcion.EXTRA,
+                java.math.BigDecimal.ZERO,false);
+        producto.setOpciones(java.util.List.of(inactiva));
+        ConexionDB bd = new ConexionDB() { public Connection getConnection() { throw new AssertionError("Conexion compartida ignorada"); } };
+        productoDAO productos = new productoDAO() {
+            public cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.Producto buscar(long id, Connection c) {
+                assertEquals(3_000_000_001L,id); assertSame(conexion,c); return producto;
+            }
+        };
+        inventarioService inventario = new inventarioService(bd,new ingredienteDAO(),new movimientoStockDAO()) {
+            public boolean hayStockSuficiente(java.util.Map<Long,Double> cantidades, Connection c) {
+                assertSame(conexion,c); assertEquals(.3,cantidades.get(1L)); return true;
+            }
+        };
+        var servicio = new catalogoService(bd,productos,new categoriaDAO(),inventario);
+        assertTrue(servicio.obtenerProducto(3_000_000_001L,conexion).isDisponible());
+        assertTrue(producto.getOpciones().isEmpty(),"La consulta para pedidos debe excluir opciones inactivas");
+        // El editor debe poder trabajar incluso si el DAO entrega listas protegidas.
+        producto.getReceta().add(new cr.ac.una.est.programacion03proyecto02.logic.model.inventario.recetaItem(2,1));
+        producto.getOpciones().add(inactiva);
+    }
+
+    @Test
+    void guardarProductoNoAsignaIdsSiFallaCommit() {
+        Connection conexion = (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
+                new Class<?>[]{Connection.class}, (p,m,a) -> {
+                    if(m.getName().equals("commit")) throw new SQLException("Fallo commit");
+                    if(java.util.Set.of("setAutoCommit","rollback","close").contains(m.getName())) return null;
+                    throw new AssertionError(m.getName());
+                });
+        ConexionDB bd = new ConexionDB() { public Connection getConnection() { return conexion; } };
+        productoDAO productos = new productoDAO() {
+            public cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.Producto guardarConRecetas(
+                    cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.Producto p, Connection c) {
+                assertSame(conexion,c);
+                return new cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.Producto(3_000_000_001L,
+                        p.getNombre(), p.getPrecioBase(),p.getCategoria(),true);
+            }
+        };
+        var servicio = new catalogoService(bd,productos,new categoriaDAO(),
+                new inventarioService(bd,new ingredienteDAO(),new movimientoStockDAO()));
+        var producto = new cr.ac.una.est.programacion03proyecto02.logic.model.catalogo.Producto(0,"Producto",
+                java.math.BigDecimal.ONE,new Categoria(1,"Categoria",true),true);
+        assertThrows(SQLException.class,()->servicio.guardarProducto(producto));
+        assertEquals(0,producto.getId());
+    }
+
+    @Test
     void rechazaNombreVacioAntesDeAbrirConexion() {
         AtomicBoolean intentoAbrirConexion = new AtomicBoolean(false);
 

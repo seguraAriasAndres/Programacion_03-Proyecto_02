@@ -14,7 +14,6 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 
-import java.sql.SQLException;
 import java.util.Objects;
 
 //controlador para consultar, crear y guardar categorías
@@ -32,6 +31,7 @@ public class CategoriasController {
     @FXML private TextField txtNombre;
     @FXML private CheckBox chkActiva;
     @FXML private Label lblMensaje;
+    @FXML private javafx.scene.layout.BorderPane raiz;
 
     public CategoriasController(CatalogoService catalogo, SesionActual sesion, NavegadorVistas navegador) {
         this.catalogo = Objects.requireNonNull(catalogo);
@@ -42,6 +42,9 @@ public class CategoriasController {
     //configura las columnas, la selección y carga las categorías
     @FXML
     private void initialize() {
+        lblMensaje.visibleProperty().bind(lblMensaje.textProperty().isNotEmpty());
+        lblMensaje.managedProperty().bind(lblMensaje.visibleProperty());
+
         colCategoriaId.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getId()));
 
         colCategoriaNombre.setCellValueFactory(celda -> new ReadOnlyObjectWrapper<>(celda.getValue().getNombre()));
@@ -58,21 +61,22 @@ public class CategoriasController {
     //actualiza la tabla con todas las categorías de administración
     @FXML
     private void onActualizar() {
-        try {
-            tblCategorias.getItems().setAll(catalogo.listarCategoriasAdministracion());
+        TareaCatalogo.ejecutar(raiz, () -> {
+            sesion.exigirRol(Rol.ADMIN);
+            return catalogo.listarCategoriasAdministracion();
+        }, categorias -> {
+            tblCategorias.getItems().setAll(categorias);
             mostrarMensaje("Categorías actualizadas.");
-        } catch (SQLException | RuntimeException error) {
-            mostrarError("No se pudieron cargar las categorías.", error);
-        }
+        }, error -> mostrarError("No se pudieron cargar las categorías.", error));
     }
 
     //limpia el formulario y prepara una categoría nueva
     @FXML
     private void onNueva() {
+        tblCategorias.getSelectionModel().clearSelection();
         seleccionada = new Categoria();
         txtNombre.clear();
         chkActiva.setSelected(true);
-        tblCategorias.getSelectionModel().clearSelection();
         mostrarMensaje("Ingrese el nombre de la categoría.");
     }
 
@@ -81,25 +85,33 @@ public class CategoriasController {
     private void onGuardar() {
         try {
             sesion.exigirRol(Rol.ADMIN);
-            if (seleccionada == null) {
-                seleccionada = new Categoria();
-            }
-            seleccionada.setNombre(txtNombre.getText());
-            seleccionada.setActiva(chkActiva.isSelected());
-            catalogo.guardarCategoria(seleccionada);
-            long idGuardado = seleccionada.getId();
-            mostrarMensaje("Categoría guardada.");
-            onActualizar();
-            seleccionarPorId(idGuardado);
-        } catch (SQLException | RuntimeException error) {
+            Categoria cambios = new Categoria(seleccionada == null ? 0 : seleccionada.getId(),
+                    txtNombre.getText(), chkActiva.isSelected());
+            TareaCatalogo.ejecutar(raiz, () -> {
+                catalogo.guardarCategoria(cambios);
+                return catalogo.listarCategoriasAdministracion();
+            }, categorias -> {
+                tblCategorias.getItems().setAll(categorias);
+                seleccionarPorId(cambios.getId());
+                mostrarMensaje("Categoría guardada.");
+            }, error -> mostrarError("No se pudo guardar o recargar la categoría. Consulte la lista antes de reintentar.", error));
+        } catch (RuntimeException error) {
             mostrarError("No se pudo guardar la categoría.", error);
         }
+    }
+
+    //regresa al menú
+    @FXML
+    private void onVolver() {
+        navegador.mostrarMenu();
     }
 
     //copia los valores de una categoría seleccionada al formulario
     private void mostrarEnFormulario(Categoria categoria) {
         seleccionada = categoria;
         if (categoria == null) {
+            txtNombre.clear();
+            chkActiva.setSelected(true);
             return;
         }
         txtNombre.setText(categoria.getNombre());

@@ -10,6 +10,11 @@ import java.util.Map;
 import java.time.LocalDateTime;
 
 public interface iinventarioService {
+    default Map<Long,Boolean> disponibilidades(Map<Long,Map<Long,Double>> recetas,Connection conexion) throws SQLException {
+        Map<Long,Boolean> resultado=new java.util.HashMap<>();
+        for(var entrada:recetas.entrySet())resultado.put(entrada.getKey(),hayStockSuficiente(entrada.getValue(),conexion));
+        return Map.copyOf(resultado);
+    }
 
     List<movimientoStock> listarMovimientos(
         LocalDateTime desde,
