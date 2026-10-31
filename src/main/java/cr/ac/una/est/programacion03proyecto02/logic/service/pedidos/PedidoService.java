@@ -160,13 +160,12 @@ public class PedidoService implements IConsultaVentas{
         });
     }
 
-    // Cancela un pedido pendiente y devuelve el descuento histórico de ingredientes.
+    // Cancela un pedido sin pagar (borrador o confirmado) y devuelve el stock si ya se descontó.
     public void cancelar(Long idPedido, String usuario) throws SQLException{
         modificarPedido(idPedido, usuario, false, (pedido, c) -> {
             pedido.cancelarPedido();
 
             Map<Long, Double> descontados = pedido.getIngredientesDescontados();
-
             if (pedido.isConfirmado() && !descontados.isEmpty()){
                 inventario.restituir(descontados, pedido.getIdPedido(), usuario, c);
             }
