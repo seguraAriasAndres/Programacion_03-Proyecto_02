@@ -17,15 +17,15 @@
         <BotonTema fx:id="btnTema"/>
     </HBox>
     <GridPane hgap="16" vgap="10" styleClass="card">
-        <Label text="Recibo:" GridPane.rowIndex="0" />
+        <Label text="Recibo:" styleClass="muted-text" GridPane.rowIndex="0" />
         <Label fx:id="lblIdRecibo" text="-" GridPane.columnIndex="1" GridPane.rowIndex="0" />
-        <Label text="Pedido:" GridPane.columnIndex="2" GridPane.rowIndex="0" />
+        <Label text="Pedido:" styleClass="muted-text" GridPane.columnIndex="2" GridPane.rowIndex="0" />
         <Label fx:id="lblPedido" text="-" GridPane.columnIndex="3" GridPane.rowIndex="0" />
-        <Label text="Fecha de pago:" GridPane.rowIndex="1" />
+        <Label text="Fecha de pago:" styleClass="muted-text" GridPane.rowIndex="1" />
         <Label fx:id="lblFecha" text="-" GridPane.columnIndex="1" GridPane.rowIndex="1" />
         <Label fx:id="lblMetodoPago" text="-" GridPane.columnIndex="3" GridPane.rowIndex="1" />
-        <Label text="Método de pago:" GridPane.columnIndex="2" GridPane.rowIndex="1" />
-        <Label text="Cobrado por:" GridPane.rowIndex="2" />
+        <Label text="Método de pago:" styleClass="muted-text" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+        <Label text="Cobrado por:" styleClass="muted-text" GridPane.rowIndex="2" />
         <Label fx:id="lblUsuario" text="-" GridPane.columnIndex="1" GridPane.rowIndex="2" />
       <columnConstraints>
          <ColumnConstraints />

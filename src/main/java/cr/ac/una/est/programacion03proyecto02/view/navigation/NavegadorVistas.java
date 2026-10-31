@@ -25,6 +25,7 @@ import cr.ac.una.est.programacion03proyecto02.logic.service.seguridad.SesionActu
 import cr.ac.una.est.programacion03proyecto02.view.personalizacion.BotonTema;
 import cr.ac.una.est.programacion03proyecto02.view.personalizacion.TemaVisual;
 
+import javafx.animation.FadeTransition;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.fxml.FXMLLoader;
@@ -32,6 +33,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import javafx.util.Duration;
 
 import java.io.IOException;
 import java.net.URL;
@@ -350,6 +352,7 @@ public class NavegadorVistas{
     // Cambiar de módulo conserva escena, tamaño, tema y estado expandido de la barra.
     private void presentar(Parent raiz){
         Scene escena = ventana.getScene();
+        Parent anterior = escena == null ? null : escena.getRoot();
         if (!vistaMostrada || escena == null){
             var limites = javafx.stage.Screen.getPrimary().getVisualBounds();
             escena = new Scene(raiz, Math.min(1150, limites.getWidth() - 40),
@@ -357,7 +360,22 @@ public class NavegadorVistas{
             ventana.setScene(escena);
             vistaMostrada = true;
         } else if (escena.getRoot() != raiz){
-            escena.setRoot(raiz);
+            if (anterior != null){
+                FadeTransition salida = new FadeTransition(Duration.millis(150), anterior);
+                salida.setFromValue(1.0);
+                salida.setToValue(0.0);
+                salida.setOnFinished(evento -> {
+                    ventana.getScene().setRoot(raiz);
+                    raiz.setOpacity(0.0);
+                    FadeTransition entrada = new FadeTransition(Duration.millis(220), raiz);
+                    entrada.setFromValue(0.0);
+                    entrada.setToValue(1.0);
+                    entrada.play();
+                });
+                salida.play();
+            } else {
+                escena.setRoot(raiz);
+            }
         }
         aplicarEstilos(escena);
         ventana.show();
@@ -426,13 +444,13 @@ public class NavegadorVistas{
         }
     }
 
-    // Comprueba que el usuario sea cajero y que los servicios de pedidos estén listos.
+    // Comprueba que el usuario sea cajero o administrador y que los servicios de pedidos estén listos.
     private void validarPedidos(){
         exigirVentana();
         if (pedidos == null || cobros == null){
             throw new IllegalStateException("Los servicios de pedidos no están configurados.");
         }
-        sesion.exigirRol(Rol.CAJERO);
+        sesion.exigirAlgunoDe(Rol.ADMIN, Rol.CAJERO);
         if (operacionEnCurso()){
             throw new IllegalStateException("Espere a que termine la operación actual.");
         }

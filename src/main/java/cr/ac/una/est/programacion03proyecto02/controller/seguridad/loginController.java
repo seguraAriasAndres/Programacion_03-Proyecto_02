@@ -8,6 +8,7 @@ import cr.ac.una.est.programacion03proyecto02.view.navigation.NavegadorVistas;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
@@ -24,6 +25,7 @@ public class loginController{
     @FXML private Pane raiz;
     @FXML private TextField txtNombreUsuario;
     @FXML private PasswordField txtClave;
+    @FXML private Button btnSalir;
     @FXML private Label lblMensaje;
 
     public loginController(IAutenticacionService autenticacion, SesionActual sesion, NavegadorVistas navegador){
@@ -37,6 +39,7 @@ public class loginController{
     private void initialize(){
         lblMensaje.visibleProperty().bind(lblMensaje.textProperty().isNotEmpty());
         lblMensaje.managedProperty().bind(lblMensaje.visibleProperty());
+        Platform.runLater(() -> txtNombreUsuario.requestFocus());
     }
 
     // Autentica la cuenta y abre directamente el puesto correspondiente al rol guardado.
@@ -80,7 +83,12 @@ public class loginController{
         tarea.setOnFailed(evento -> {
             raiz.setDisable(false);
             txtClave.clear();
-            lblMensaje.setText("No se pudo completar el inicio de sesión.");
+            Throwable error = tarea.getException();
+            if (error instanceof java.sql.SQLException) {
+                lblMensaje.setText("Error de base de datos: " + error.getMessage());
+            } else {
+                lblMensaje.setText("No se pudo completar el inicio de sesión.");
+            }
         });
 
         new Thread(tarea, "autenticar-usuario").start();

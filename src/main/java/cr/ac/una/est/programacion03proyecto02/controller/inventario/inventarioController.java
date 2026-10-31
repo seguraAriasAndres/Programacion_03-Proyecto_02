@@ -69,6 +69,7 @@ public class inventarioController{
     @FXML private DatePicker dpDesde;
     @FXML private DatePicker dpHasta;
     @FXML private Label lblMensaje;
+    @FXML private Label lblModoEdicion;
     @FXML private TabPane tabAcciones;
     @FXML private Tab tabEdicion;
     @FXML private Button btnBajoMinimo;
@@ -262,7 +263,7 @@ public class inventarioController{
     @FXML
     private void onBajoMinimo(){
         soloBajoMinimo = !soloBajoMinimo;
-        ingredientesFiltrados.setPredicate(item -> !soloBajoMinimo || item.isActivo() && item.estaBajoMinimo());
+        ingredientesFiltrados.setPredicate(item -> !soloBajoMinimo || (item.isActivo() && item.estaBajoMinimo()));
         btnBajoMinimo.setText(soloBajoMinimo ? "Ver todos" : "Ver bajo mínimo");
         lblMensaje.setText(soloBajoMinimo ? "Mostrando ingredientes bajo el mínimo." : "Mostrando todos los ingredientes.");
     }
@@ -270,6 +271,9 @@ public class inventarioController{
     // Copia el ingrediente seleccionado al formulario; null deja el formulario limpio.
     private void mostrarEnFormulario(ingrediente ingrediente){
         seleccionado = ingrediente;
+        lblModoEdicion.setText(ingrediente == null ? "Nuevo ingrediente" : "Editando: " + ingrediente.getNombre());
+        lblModoEdicion.getStyleClass().removeAll("status-warning", "status-success");
+        lblModoEdicion.getStyleClass().add(ingrediente == null ? "status-success" : "status-warning");
         txtNombreIngrediente.setText(ingrediente == null ? "" : ingrediente.getNombre());
         cmbUnidad.setValue(ingrediente == null ? unidadMedida.UNIDAD : ingrediente.getUnidadMedida());
         txtStockMinimo.setText(ingrediente == null ? "0" : String.valueOf(ingrediente.getStockMinimo()));

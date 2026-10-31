@@ -49,6 +49,7 @@
                     <Tab fx:id="tabEdicion" text="Ingrediente nuevo o edición">
                         <content>
                             <HBox spacing="12.0" alignment="CENTER_LEFT" styleClass="card">
+                                <Label fx:id="lblModoEdicion" wrapText="false" styleClass="status-message"/>
                                 <TextField fx:id="txtNombreIngrediente" promptText="Nombre" prefWidth="200.0"/>
                                 <ComboBox fx:id="cmbUnidad" promptText="Unidad" prefWidth="130.0"/>
                                 <TextField fx:id="txtStockMinimo" promptText="Stock mínimo" prefWidth="110.0"/>
