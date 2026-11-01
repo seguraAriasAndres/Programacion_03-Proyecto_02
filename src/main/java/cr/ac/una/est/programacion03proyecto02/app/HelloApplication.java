@@ -76,13 +76,27 @@ public class HelloApplication extends Application{
             try{
                 navegador.mostrarLogin();
             } catch (RuntimeException error){
-                estado.setText("Los servicios están listos, pero no se pudo abrir el inicio de sesión. " + "Verifique que exista seguridad/login.fxml y esté configurada.");
+                error.printStackTrace();
+                estado.setText("Los servicios están listos, pero no se pudo abrir el inicio de sesión: "
+                        + detalleError(error));
             }
         });
 
-        tarea.setOnFailed(evento -> estado.setText("No se pudieron preparar los servicios. " + "Revise la conexión y vuelva a iniciar."));
+        tarea.setOnFailed(evento -> {
+            Throwable error = tarea.getException();
+            if (error != null) error.printStackTrace();
+            estado.setText("No se pudieron preparar los servicios: " + detalleError(error));
+        });
 
         Thread hilo = new Thread(tarea, "iniciar-servicios");
         hilo.start();
+    }
+
+    private static String detalleError(Throwable error){
+        if (error == null) return "No se recibió información del error.";
+        Throwable causa = error;
+        while (causa.getCause() != null) causa = causa.getCause();
+        String mensaje = causa.getMessage();
+        return causa.getClass().getSimpleName() + (mensaje == null || mensaje.isBlank() ? "" : ": " + mensaje);
     }
 }
