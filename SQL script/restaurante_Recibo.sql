@@ -1,0 +1,66 @@
+-- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
+--
+-- Host: restaurante-mysql-restaurante1234.a.aivencloud.com    Database: restaurante
+-- ------------------------------------------------------
+-- Server version	8.4.11
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!50503 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+SET @MYSQLDUMP_TEMP_LOG_BIN = @@SESSION.SQL_LOG_BIN;
+SET @@SESSION.SQL_LOG_BIN= 0;
+
+--
+-- GTID state at the beginning of the backup 
+--
+
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '8c0ded80-cd11-11f1-8b3d-6244f4941306:1-430';
+
+--
+-- Table structure for table `Recibo`
+--
+
+DROP TABLE IF EXISTS `Recibo`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Recibo` (
+  `id_recibo` bigint NOT NULL AUTO_INCREMENT,
+  `id_pedido` bigint NOT NULL,
+  `total_pago` decimal(15,2) NOT NULL,
+  `metodo_pago` varchar(20) NOT NULL,
+  `fecha_recibo` datetime(6) NOT NULL,
+  `usuario_recibo` varchar(100) NOT NULL,
+  PRIMARY KEY (`id_recibo`),
+  UNIQUE KEY `uq_recibo_pedido` (`id_pedido`),
+  CONSTRAINT `fk_recibo_pedido` FOREIGN KEY (`id_pedido`) REFERENCES `pedido` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `Recibo`
+--
+
+LOCK TABLES `Recibo` WRITE;
+/*!40000 ALTER TABLE `Recibo` DISABLE KEYS */;
+INSERT INTO `Recibo` VALUES (2,4,11000.00,'SINPE_MOVIL','2026-10-29 15:24:44.205127','cajero'),(3,5,13000.00,'SINPE_MOVIL','2026-10-30 13:44:43.037378','cajero'),(4,6,13500.00,'EFECTIVO','2026-10-30 13:45:57.194246','cajero'),(5,8,2500.00,'SINPE_MOVIL','2026-10-30 17:37:22.476887','cajero'),(6,7,30500.00,'TARJETA','2026-10-30 17:38:26.250540','cajero'),(7,9,26500.00,'TARJETA','2026-10-30 19:19:19.840426','cajero'),(8,14,2200.00,'EFECTIVO','2026-10-31 12:40:51.390557','CajaRoja'),(9,15,4500.00,'SINPE_MOVIL','2026-10-31 12:42:10.419901','CajaRoja'),(10,16,14200.00,'TARJETA','2026-11-01 20:55:31.742644','CajaRoja');
+/*!40000 ALTER TABLE `Recibo` ENABLE KEYS */;
+UNLOCK TABLES;
+SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2026-11-02 22:12:33
